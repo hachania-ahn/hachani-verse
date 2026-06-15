@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>muum | 묾</title>
+    <meta name="description" content="muum | Discover your own unique universe and explore K-culture cosmic artifacts. 4초간 머물러 나만의 별을 창조하고, 우주에 펼쳐진 은하 비단길을 탐사하세요.">
+    <meta name="keywords" content="muum, 묾, 은하 비단길, DIY Hanbok, Hanbok package, Korean traditional craft, interactive universe, space synth, 한복 패키지">
+    
+    <meta property="og:title" content="muum | The Cosmic K-Culture Universe">
+    <meta property="og:description" content="4초의 기다림이 별을 낳는 곳. 깊은 우주 속에서 태어나는 '은하 비단길'의 베일을 확인해 보세요.">
+    <meta property="og:type" content="website">
+
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400&family=Space+Grotesk:wght@300;400&display=swap');
+
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #020206; color: #ffffff;
+            font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif;
+            overflow: hidden; user-select: none;
+        }
+
+        /* 깊은 우주 오로라 배경 */
+        .space-bg {
+            position: absolute; width: 100%; height: 100%;
+            background: radial-gradient(circle at 30% 40%, rgba(20, 20, 45, 0.5) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 60%, rgba(10, 35, 35, 0.4) 0%, transparent 50%),
+                        radial-gradient(circle at 50% 50%, rgba(30, 15, 45, 0.4) 0%, transparent 60%);
+            z-index: 1;
+        }
+
+        /* 떠다니는 자모음 스타일 */
+        .floating-jamo {
+            position: absolute; font-weight: 100; color: rgba(200, 230, 255, 0.4);
+            text-shadow: 0 0 15px rgba(147, 197, 253, 0.3);
+            transition: all 2.5s cubic-bezier(0.25, 1, 0.5, 1); font-size: 28px; z-index: 60;
+        }
+
+        /* 홀로그램 말풍선 */
+        .hologram-box {
+            position: absolute; background: rgba(8, 16, 32, 0.85);
+            border: 1px solid rgba(0, 242, 254, 0.35); box-shadow: 0 0 20px rgba(0, 242, 254, 0.15);
+            backdrop-filter: blur(8px); padding: 14px 18px; border-radius: 4px;
+            font-size: 13px; color: #e2f1f9; max-width: 280px;
+            pointer-events: none; opacity: 0; transform: translateY(10px);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1); z-index: 100;
+        }
+        .hologram-box.active { opacity: 1; transform: translateY(0); }
+
+        .hologram-line {
+            position: absolute; width: 1px;
+            background: linear-gradient(to top, rgba(0, 242, 254, 0.4), transparent);
+            transform-origin: bottom; transition: all 0.3s ease; z-index: 95; display: none;
+        }
+
+        /* 행성 오브젝트 */
+        .celestial-obj {
+            position: absolute; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 11px;
+            cursor: pointer; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
+            z-index: 10;
+        }
+        .celestial-obj:hover { transform: scale(1.12); }
+
+        .orbit-line {
+            position: absolute; top: 50%; left: 50%;
+            border: 1px dashed rgba(255, 255, 255, 0.035);
+            border-radius: 50%; transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 2;
+        }
+
+        #custom-cursor {
+            width: 6px; height: 6px; background: rgba(0, 242, 254, 0.8);
+            border-radius: 50%; position: fixed; pointer-events: none; z-index: 9999;
+            transform: translate(-50%, -50%); box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+            transition: width 0.2s, height 0.2s;
+        }
+        
+        .typing { border-right: 2px solid rgba(0, 242, 254, 0.75); animation: blink .75s step-end infinite; }
+        @keyframes blink { 50% { border-color: transparent } }
+    </style>
+</head>
+<body>
+
+    <div id="custom-cursor"></div>
+    <div class="space-bg"></div>
+    <canvas id="stars-canvas" class="absolute inset-0 w-full h-full z-1"></canvas>
+
+    <div id="entry-layer" class="absolute inset-0 z-100 flex flex-col items-center justify-center bg-[#020206] transition-opacity duration-1000">
+        <button id="start-btn" class="text-sm font-light tracking-[0.4em] text-white/60 hover:text-cyan-300 transition-colors cursor-pointer border border-white/10 px-8 py-3 rounded-full backdrop-blur-sm bg-white/5">
+            muum 우주 진입하기
+        </button>
+    </div>
+
+    <div id="opening-layer" class="absolute inset-0 z-50 pointer-events-none hidden">
+        <div id="jamo-container" class="absolute inset-0 w-full h-full"></div>
+        <div id="main-logo" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl tracking-[0.4em] font-light opacity-0 transition-all duration-1000"></div>
+    </div>
+
+    <div id="universe-layer" class="absolute inset-0 opacity-0 transition-opacity duration-1000 z-10 pointer-events-none">
+        <div id="core-sun" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full flex flex-col items-center justify-center z-20 cursor-pointer">
+            <div class="absolute inset-0 rounded-full bg-white/5 blur-md animate-pulse"></div>
+            <div class="text-xl font-light tracking-widest text-white/90">muum</div>
+            <div class="text-[9px] tracking-widest text-white/30 mt-1">묾</div>
+        </div>
+        <div id="orbit-system" class="absolute inset-0 w-full h-full"></div>
+    </div>
+
+    <div id="hologram-tooltip" class="hologram-box"></div>
+    <div id="hologram-line" class="hologram-line"></div>
+
+    <div id="idle-overlay" class="absolute inset-0 bg-[#020206]/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-1000 z-40 flex flex-col items-center justify-center">
+        <div id="idle-first-time" class="text-center space-y-6">
+            <p class="text-xl font-light tracking-widest text-sky-100/90 animate-pulse">"너의 기다림이 별을 낳았어."</p>
+            <div class="flex flex-col items-center space-y-3">
+                <input type="text" id="star-name-input" placeholder="생성된 별의 이름을 지어주세요" class="bg-transparent border-b border-white/20 px-4 py-2 text-sm font-light tracking-wider text-center focus:outline-none focus:border-cyan-400/60 w-64 transition-colors text-white">
+                <button id="save-star-btn" class="text-[11px] tracking-widest text-cyan-400/60 hover:text-cyan-300 font-light uppercase pt-2 transition-colors cursor-pointer">은하계 생성 및 진입</button>
+            </div>
+        </div>
+        <div id="idle-returning" class="text-center space-y-6 hidden">
+            <p id="returning-msg" class="text-xl font-light tracking-widest text-sky-100/95 animate-pulse"></p>
+            <div class="flex flex-col items-center space-y-4">
+                <button id="enter-star-btn" class="text-[12px] tracking-[0.2em] text-cyan-300 border border-cyan-400/30 px-8 py-2.5 rounded-full backdrop-blur-sm bg-white/5 hover:bg-cyan-400/10 transition-all cursor-pointer">나의 은하계 바로 진입</button>
+                <button id="reset-star-btn" class="text-[9px] tracking-widest text-white/30 hover:text-white/50 font-light transition-colors cursor-pointer">별 이름 지우고 새로 만들기</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="sub-galaxy-layer" class="absolute inset-0 bg-[#020207] opacity-0 pointer-events-none transition-opacity duration-1000 z-45 flex items-center justify-center">
+        <canvas id="sub-galaxy-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        <div class="absolute bottom-16 text-center z-50">
+            <h2 id="named-galaxy-title" class="text-lg font-light tracking-widest text-white/80 mb-1"></h2>
+            <p class="text-[10px] tracking-wider text-white/30">개인 세션 기반 실시간 관측 구역</p>
+            <button id="exit-galaxy-btn" class="mt-6 text-[10px] tracking-widest text-white/40 hover:text-white/70 border border-white/10 px-4 py-1.5 rounded-full transition-colors cursor-pointer">우주 밖으로</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 사운드 엔진 ---
+        let audioCtx = null; let ambientOsc = null;
+        function initAudioEngine() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            ambientOsc = audioCtx.createOscillator(); const ambientGain = audioCtx.createGain(); const filter = audioCtx.createBiquadFilter();
+            ambientOsc.type = 'triangle'; ambientOsc.frequency.setValueAtTime(55, audioCtx.currentTime);
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(150, audioCtx.currentTime);
+            ambientGain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+            ambientOsc.connect(filter); filter.connect(ambientGain); ambientGain.connect(audioCtx.destination);
+            ambientOsc.start();
+        }
+        function playBlipSound() {
+            if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(110, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.04, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.15);
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.16);
+        }
+        function playChimeSound() {
+            if(!audioCtx) return; const now = audioCtx.currentTime; const freqs = [523.25, 659.25, 783.99, 987.77];
+            freqs.forEach((f, i) => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sine';
+                osc.frequency.setValueAtTime(f, now + (i * 0.08)); gain.gain.setValueAtTime(0.08, now + (i * 0.08));
+                gain.gain.exponentialRampToValueAtTime(0.001, now + (i * 0.08) + 0.6);
+                osc.connect(gain); gain.connect(audioCtx.destination); osc.start(now + (i * 0.08)); osc.stop(now + (i * 0.08) + 0.6);
+            });
+        }
+        function playImpactSound() {
+            if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(120, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 1.2);
+            gain.gain.setValueAtTime(0.25, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 1.2);
+            osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 1.2);
+        }
+
+        // --- 🪐 우주 행성 메타 데이터 (은하 비단길 신규 추가) ---
+        const planetsData = [
+            { name: '하차니아', type: 'active-main', radius: 170, speed: 0.0012, size: 65, color: 'rgba(239, 68, 68, 0.12)', stroke: 'rgba(239, 68, 68, 0.4)', text: '300+ 쇼츠 아카이브 성운' },
+            { name: 'fiftyology', type: 'active-main', radius: 260, speed: -0.0008, size: 70, color: 'rgba(14, 116, 144, 0.12)', stroke: 'rgba(34, 211, 238, 0.4)', text: '150+ 고감도 정체성 기지' },
+            { name: '하찮은 게임위성', type: 'active-sat', radius: 110, speed: 0.0025, size: 45, color: 'rgba(168, 85, 247, 0.08)', stroke: 'rgba(168, 85, 247, 0.4)', text: '싹싹게임 & 등짝스메싱 MVP 구동존' },
+            
+            // ✨ [신규 글로벌 컨셉] 은하 비단길: 비활성화 상태로 짜잔 오픈 대기 모드
+            { name: '은하 비단길', type: 'inactive', radius: 370, speed: 0.0006, size: 55, color: 'rgba(20, 184, 166, 0.03)', stroke: 'rgba(45, 212, 191, 0.25)', text: '🔮 [The Silk Way] 짜잔-! 눈부시게 아름다운 우주의 비단 옷자락이 곧 이곳에 펼쳐집니다. \'이 아름다운 비단... 전부 내 거야!\' (Global DIY Hanbok Package Coming Soon)' },
+            
+            { name: '바지찾아삼만리위성', type: 'active-sat', radius: 430, speed: 0.0007, size: 52, color: 'rgba(234, 179, 8, 0.08)', stroke: 'rgba(234, 179, 8, 0.4)', text: '월간 20벌 한정판 물질화 빌드라인' },
+            { name: '꼰데 가르송 위성', type: 'active-sat', radius: 490, speed: -0.0005, size: 48, color: 'rgba(244, 63, 94, 0.08)', stroke: 'rgba(244, 63, 94, 0.4)', text: '독창적 룩북 & 취향 가르송 아카이브' },
+            { name: '편집중', type: 'inactive', radius: 210, speed: 0.0015, size: 40, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.15)', text: '⚠️ 마감 임박 성운: 현재 쇼츠 렌더링 99%에서 멈춘 듯함. 대표님이 밤새 마우스를 클릭하고 있습니다.' },
+            { name: '뻘짓중', type: 'inactive', radius: 320, speed: -0.0014, size: 42, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.15)', text: '🔮 무익함의 미학: 인생에 꼭 필요한 \'생산적 딴짓\'을 관측 중입니다. 건드리면 쓸데없는 아이디어가 폭발하니 주의하세요.' },
+            { name: '조만간', type: 'inactive', radius: 140, speed: -0.002, size: 38, color: 'rgba(220, 38, 38, 0.04)', stroke: 'rgba(220, 38, 38, 0.3)', text: '🔥 행성 충돌 D-30: 한 땀 한 땀 바지가 자라나는 중. 한 달 뒤 20벌 한정판 물질화 완료.' },
+            { name: '멀었음', type: 'inactive', radius: 550, speed: 0.0003, size: 40, color: 'rgba(30, 41, 59, 0.15)', stroke: 'rgba(148, 163, 184, 0.15)', text: '❄️ 절대 영도 영역: 기획서 첫 줄 쓰다 엎음. 아이디어 동결 상태.' },
+            { name: '10년후', type: 'inactive', radius: 610, speed: -0.0002, size: 35, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.08)', text: '🚀 먼 미래의 나에게: 미래의 대기업 \'묾\' 우주 본사 부지 예약 공간.' }
+        ];
+
+        let angleOffsets = planetsData.map(() => Math.random() * Math.PI * 2);
+        let idleTimer; let isUniverseActive = false; let isIdleTriggered = false;
+
+        const cursor = document.getElementById('custom-cursor'); const entryLayer = document.getElementById('entry-layer'); const startBtn = document.getElementById('start-btn');
+        const openingLayer = document.getElementById('opening-layer'); const jamoContainer = document.getElementById('jamo-container'); const mainLogo = document.getElementById('main-logo');
+        const universeLayer = document.getElementById('universe-layer'); const orbitSystem = document.getElementById('orbit-system');
+        const hologramTooltip = document.getElementById('hologram-tooltip'); const hologramLine = document.getElementById('hologram-line');
+        const idleOverlay = document.getElementById('idle-overlay'); const starNameInput = document.getElementById('star-name-input'); const saveStarBtn = document.getElementById('save-star-btn');
+        const subGalaxyLayer = document.getElementById('sub-galaxy-layer'); const namedGalaxyTitle = document.getElementById('named-galaxy-title'); const exitGalaxyBtn = document.getElementById('exit-galaxy-btn');
+
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px';
+            if (isUniverseActive && !isIdleTriggered) resetIdleTimer();
+        });
+
+        startBtn.addEventListener('click', () => {
+            entryLayer.style.opacity = '0';
+            setTimeout(() => {
+                entryLayer.style.display = 'none'; openingLayer.classList.remove('hidden');
+                initAudioEngine(); startJamoFloatingSequence();
+            }, 1000);
+        });
+
+        // --- 자모음 오프닝 시퀀스 ---
+        function startJamoFloatingSequence() {
+            const jamos = ['ㅁ', 'ㅜ', 'ㄹ', 'ㅁ']; const elements = []; const w = window.innerWidth; const h = window.innerHeight;
+            jamos.forEach((char, i) => {
+                const el = document.createElement('div'); el.className = 'floating-jamo'; el.textContent = char;
+                let rx = Math.random() * (w * 0.6) + (w * 0.1); let ry = Math.random() * (h * 0.6) + (h * 0.1);
+                el.style.left = rx + 'px'; el.style.top = ry + 'px'; el.style.opacity = '0';
+                jamoContainer.appendChild(el); elements.push(el);
+                setTimeout(() => { el.style.opacity = '0.7'; }, 100 * i);
+            });
+
+            setTimeout(() => {
+                playImpactSound();
+                elements.forEach(el => {
+                    el.style.left = '50%'; el.style.top = '50%'; el.style.transform = 'translate(-50%, -50%) scale(0.5)'; el.style.opacity = '0';
+                });
+                setTimeout(() => {
+                    mainLogo.style.opacity = '1'; mainLogo.innerHTML = '<span class="text-white font-light">묾</span>';
+                    setTimeout(() => {
+                        mainLogo.innerHTML = '<span class="text-transparent bg-clip-text bg-gradient-to-r from-teal-200 via-indigo-200 to-purple-300 font-light uppercase">muum</span>';
+                        setTimeout(() => {
+                            openingLayer.style.opacity = '0'; universeLayer.classList.remove('pointer-events-none'); universeLayer.style.opacity = '1';
+                            isUniverseActive = true; buildOrbitSystem(); animateOrbitSystem(); resetIdleTimer();
+                        }, 1800);
+                    }, 1200);
+                }, 1000);
+            }, 2500);
+        }
+
+        // --- 궤도 시스템 ---
+        function buildOrbitSystem() {
+            orbitSystem.innerHTML = ''; const uniqueRadii = [...new Set(planetsData.map(p => p.radius))];
+            uniqueRadii.forEach(r => {
+                const orbit = document.createElement('div'); orbit.className = 'orbit-line'; orbit.style.width = `${r * 2}px`; orbit.style.height = `${r * 2}px`; orbitSystem.appendChild(orbit);
+            });
+            planetsData.forEach((p, idx) => {
+                const obj = document.createElement('div'); obj.className = `celestial-obj border border-dashed`; obj.id = `planet-${idx}`;
+                obj.style.width = `${p.size}px`; obj.style.height = `${p.size}px`; obj.style.backgroundColor = p.color; obj.style.borderColor = p.stroke;
+                if(p.type.startsWith('active')) { obj.style.boxShadow = `0 0 12px ${p.stroke.replace('0.4', '0.15')}`; }
+                obj.innerHTML = `<span class="text-[9px] scale-90 tracking-tighter opacity-70 ${p.type === 'inactive' ? 'text-slate-400' : 'text-white'} font-light text-center px-1">${p.name}</span>`;
+                obj.addEventListener('mouseenter', (e) => { playBlipSound(); triggerHologram(e, p, obj); });
+                obj.addEventListener('mouseleave', hideHologram); orbitSystem.appendChild(obj);
+            });
+        }
+
+        function animateOrbitSystem() {
+            if (!isUniverseActive) return; const centerX = window.innerWidth / 2; const centerY = window.innerHeight / 2;
+            planetsData.forEach((p, idx) => {
+                const obj = document.getElementById(`planet-${idx}`); if (!obj) return;
+                angleOffsets[idx] += p.speed; const x = centerX + Math.cos(angleOffsets[idx]) * p.radius - (p.size / 2); const y = centerY + Math.sin(angleOffsets[idx]) * p.radius - (p.size / 2);
+                obj.style.left = `${x}px`; obj.style.top = `${y}px`;
+            });
+            requestAnimationFrame(animateOrbitSystem);
+        }
+
+        // --- 홀로그램 ---
+        let typeInterval;
+        function triggerHologram(e, planet, element) {
+            cursor.style.width = '12px'; cursor.style.height = '12px'; clearInterval(typeInterval); hologramTooltip.innerHTML = '';
+            hologramLine.style.display = 'block'; updateHologramLine(element); hologramTooltip.classList.add('active');
+            let currentText = ""; let charIdx = 0; hologramTooltip.innerHTML = `<span class="typing"></span>`; const typingSpan = hologramTooltip.querySelector('.typing');
+            typeInterval = setInterval(() => {
+                if (charIdx < planet.text.length) { currentText += planet.text[charIdx]; typingSpan.textContent = currentText; charIdx++; }
+                else { clearInterval(typeInterval); typingSpan.classList.remove('typing'); typingSpan.style.borderRight = 'none'; }
+            }, 20);
+        }
+        function updateHologramLine(el) {
+            const rect = el.getBoundingClientRect(); const startX = rect.left + rect.width / 2; const startY = rect.top; const tX = startX + 30; const tY = startY - 70;
+            hologramTooltip.style.left = `${tX}px`; hologramTooltip.style.top = `${tY}px`; hologramLine.style.left = `${startX}px`; hologramLine.style.top = `${tY + 30}px`;
+            hologramLine.style.height = `${startY - (tY + 30)}px`; hologramLine.style.transform = 'rotate(-15deg)';
+        }
+        function hideHologram() { cursor.style.width = '6px'; cursor.style.height = '6px'; clearInterval(typeInterval); hologramTooltip.classList.remove('active'); hologramLine.style.display = 'none'; }
+
+        // --- ⏳ 4초 머묾 엔진 ---
+        function resetIdleTimer() { if (isIdleTriggered) return; clearTimeout(idleTimer); idleTimer = setTimeout(triggerIdleState, 4000); }
+
+        function triggerIdleState() {
+            isIdleTriggered = true; playChimeSound();
+            
+            const savedStarName = localStorage.getItem('muum_star_name');
+            const firstTimeArea = document.getElementById('idle-first-time');
+            const returningArea = document.getElementById('idle-returning');
+            const returningMsg = document.getElementById('returning-msg');
+
+            if (savedStarName) {
+                firstTimeArea.classList.add('hidden');
+                returningArea.classList.remove('hidden');
+                returningMsg.textContent = `"또 오셨네요. 당신이 머물다 간 자리에 '${savedStarName}' 별이 여전히 고요히 빛나고 있어요."`;
+            } else {
+                firstTimeArea.classList.remove('hidden');
+                returningArea.classList.add('hidden');
+            }
+
+            idleOverlay.classList.remove('pointer-events-none'); idleOverlay.style.opacity = '1';
+        }
+
+        saveStarBtn.addEventListener('click', () => {
+            const starName = starNameInput.value.trim() || '무명의 안식별';
+            localStorage.setItem('muum_star_name', starName);
+            enterSubGalaxy(starName);
+        });
+
+        document.getElementById('enter-star-btn').addEventListener('click', () => {
+            const savedStarName = localStorage.getItem('muum_star_name') || '무명의 안식별';
+            enterSubGalaxy(savedStarName);
+        });
+
+        document.getElementById('reset-star-btn').addEventListener('click', () => {
+            localStorage.removeItem('muum_star_name');
+            triggerIdleState();
+        });
+
+        function enterSubGalaxy(name) {
+            idleOverlay.style.opacity = '0'; idleOverlay.classList.add('pointer-events-none');
+            namedGalaxyTitle.textContent = `🪐 ${name} 은하계`;
+            subGalaxyLayer.classList.remove('pointer-events-none'); subGalaxyLayer.style.opacity = '1';
+            initSubGalaxyCanvas();
+        }
+
+        exitGalaxyBtn.addEventListener('click', () => {
+            subGalaxyLayer.style.opacity = '0'; subGalaxyLayer.classList.add('pointer-events-none');
+            starNameInput.value = ''; isIdleTriggered = false; resetIdleTimer();
+        });
+
+        // --- 백그라운드 별자리 ---
+        const canvas = document.getElementById('stars-canvas'); const ctx = canvas.getContext('2d'); let stars = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; initStars(); }
+        function initStars() { stars = []; for (let i = 0; i < 100; i++) { stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, size: Math.random() * 1.2, alpha: Math.random(), speed: 0.008 + Math.random() * 0.015 }); } }
+        function animateStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#ffffff';
+            stars.forEach(star => { star.alpha += star.speed; if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed; ctx.globalAlpha = Math.max(0, star.alpha); ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill(); });
+            ctx.globalAlpha = 1.0; requestAnimationFrame(animateStars);
+        }
+        window.addEventListener('resize', resizeCanvas); resizeCanvas(); animateStars();
+
+        // --- 서브 갤럭시 코어 ---
+        const subCanvas = document.getElementById('sub-galaxy-canvas'); const subCtx = subCanvas.getContext('2d'); let subStars = []; let subAnimationId;
+        function initSubGalaxyCanvas() {
+            subCanvas.width = window.innerWidth; subCanvas.height = window.innerHeight; subStars = [];
+            for (let i = 0; i < 250; i++) { let angle = Math.random() * Math.PI * 2; let distance = 20 + Math.random() * 260; subStars.push({ angle: angle, distance: distance, size: 0.6 + Math.random() * 1.2, speed: 0.0015 + (260 - distance) * 0.00004, color: i % 3 === 0 ? 'rgba(147, 197, 253, r)' : (i % 3 === 1 ? 'rgba(196, 181, 253, r)' : 'rgba(167, 243, 254, r)') }); }
+            animateSubGalaxy();
+        }
+        function animateSubGalaxy() {
+            if (subGalaxyLayer.style.opacity === '0') { cancelAnimationFrame(subAnimationId); return; }
+            subCtx.fillStyle = 'rgba(2, 2, 6, 0.2)'; subCtx.fillRect(0, 0, subCanvas.width, subCanvas.height); const cx = subCanvas.width / 2; const cy = subCanvas.height / 2;
+            subStars.forEach(s => { s.angle += s.speed; let x = cx + Math.cos(s.angle) * s.distance; let y = cy + Math.sin(s.angle) * s.distance; let alpha = 0.3 + Math.abs(Math.sin(s.angle * 2)) * 0.7; subCtx.fillStyle = s.color.replace('r', alpha); subCtx.beginPath(); subCtx.arc(x, y, s.size, 0, Math.PI * 2); subCtx.fill(); });
+            subAnimationId = requestAnimationFrame(animateSubGalaxy);
+        }
+    </script>
+</body>
+</html>
