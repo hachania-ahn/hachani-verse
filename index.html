@@ -17,10 +17,10 @@
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400&family=Space+Grotesk:wght@300;400&display=swap');
 
         body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
+            margin: 0; padding: 0; width: 100%; height: 100%; min-height: 100dvh;
             background-color: #020206; color: #ffffff;
             font-family: 'Space Grotesk', 'Noto Sans KR', sans-serif;
-            overflow: hidden; user-select: none;
+            overflow: hidden; user-select: none; touch-action: manipulation;
         }
 
         /* 깊은 우주 오로라 배경 */
@@ -56,14 +56,43 @@
             transform-origin: bottom; transition: all 0.3s ease; z-index: 95; display: none;
         }
 
-        /* 행성 오브젝트 */
+        /* 행성 오브젝트: 기존 우주 톤은 유지하되, 모바일에서도 이모티콘 배지처럼 선명하게 */
         .celestial-obj {
-            position: absolute; border-radius: 50%; display: flex;
-            align-items: center; justify-content: center; font-size: 11px;
-            cursor: pointer; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease;
-            z-index: 10;
+            position: absolute; border-radius: 999px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; gap: 2px;
+            cursor: pointer; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease, opacity 0.4s ease;
+            z-index: 10; overflow: hidden; text-align: center;
+            background:
+                radial-gradient(circle at 35% 28%, rgba(255,255,255,0.22), transparent 34%),
+                radial-gradient(circle at 50% 72%, rgba(255,255,255,0.05), transparent 56%),
+                var(--planet-bg);
+            box-shadow: 0 0 14px rgba(255,255,255,0.04), inset 0 0 18px rgba(255,255,255,0.05);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
         }
-        .celestial-obj:hover { transform: scale(1.12); }
+        .celestial-obj:hover, .celestial-obj.focused { transform: scale(1.48); filter: brightness(1.28) saturate(1.2); box-shadow: 0 0 34px rgba(255,255,255,0.18), inset 0 0 22px rgba(255,255,255,0.08); z-index: 30; }
+        .celestial-obj:hover .celestial-name, .celestial-obj.focused .celestial-name { opacity: 1; font-weight: 500; text-shadow: 0 0 10px rgba(0,0,0,0.95), 0 0 16px rgba(255,255,255,0.34); }
+        .celestial-obj:hover .celestial-icon, .celestial-obj.focused .celestial-icon { filter: drop-shadow(0 0 12px rgba(255,255,255,0.72)); }
+        .celestial-icon {
+            line-height: 1; font-size: clamp(15px, 3.2vw, 23px);
+            filter: drop-shadow(0 0 7px rgba(255,255,255,0.45));
+        }
+        .celestial-name {
+            max-width: 86%; font-size: clamp(7px, 1.45vw, 10px); line-height: 1.05;
+            font-weight: 400; letter-spacing: -0.04em;
+            text-shadow: 0 0 8px rgba(0,0,0,0.9), 0 0 8px rgba(255,255,255,0.16);
+            white-space: normal; word-break: keep-all;
+        }
+        .celestial-obj.inactive { opacity: 0.78; }
+        .celestial-obj.inactive .celestial-icon { opacity: 0.72; filter: drop-shadow(0 0 4px rgba(255,255,255,0.2)); }
+
+        @media (max-width: 640px) {
+            #core-sun { width: 76px !important; height: 76px !important; }
+            #core-sun .text-xl { font-size: 1rem; }
+            .celestial-name { font-size: 7px; line-height: 1; }
+            .hologram-box { max-width: calc(100vw - 32px); font-size: 12px; padding: 12px 14px; }
+            #custom-cursor { display: none; }
+        }
 
         .orbit-line {
             position: absolute; top: 50%; left: 50%;
@@ -81,6 +110,290 @@
         
         .typing { border-right: 2px solid rgba(0, 242, 254, 0.75); animation: blink .75s step-end infinite; }
         @keyframes blink { 50% { border-color: transparent } }
+
+
+        /* --- 성좌 상세 패널: 데스크탑은 우측 관측창, 모바일은 바텀시트 --- */
+        .planet-backdrop {
+            position: fixed; inset: 0; z-index: 180;
+            background: rgba(2, 2, 8, 0.42);
+            backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+            opacity: 0; pointer-events: none; transition: opacity 0.35s ease;
+        }
+        .planet-backdrop.active { opacity: 1; pointer-events: auto; }
+
+        .planet-panel {
+            position: fixed; top: 50%; right: 28px; transform: translate(26px, -50%) scale(0.985);
+            width: min(430px, calc(100vw - 56px)); max-height: min(760px, calc(100dvh - 56px));
+            z-index: 190; opacity: 0; pointer-events: none; overflow: hidden;
+            border: 1px solid rgba(125, 211, 252, 0.28); border-radius: 26px;
+            background:
+                radial-gradient(circle at 20% 0%, rgba(45, 212, 191, 0.14), transparent 34%),
+                radial-gradient(circle at 90% 18%, rgba(250, 204, 21, 0.13), transparent 30%),
+                rgba(4, 9, 18, 0.86);
+            box-shadow: 0 0 38px rgba(14, 165, 233, 0.12), 0 24px 80px rgba(0,0,0,0.58);
+            backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+            transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .planet-panel.active { opacity: 1; pointer-events: auto; transform: translate(0, -50%) scale(1); }
+        .planet-panel-inner { max-height: inherit; overflow-y: auto; padding: 22px; scrollbar-width: thin; scrollbar-color: rgba(125,211,252,0.35) transparent; }
+        .planet-panel-inner::-webkit-scrollbar { width: 4px; }
+        .planet-panel-inner::-webkit-scrollbar-thumb { background: rgba(125,211,252,0.35); border-radius: 99px; }
+
+        .panel-kicker { font-size: 10px; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(125,211,252,0.58); }
+        .panel-title { margin-top: 8px; font-size: 24px; line-height: 1.14; font-weight: 300; letter-spacing: -0.04em; color: rgba(255,255,255,0.94); }
+        .panel-desc { margin-top: 10px; font-size: 13px; line-height: 1.8; color: rgba(226,241,249,0.72); word-break: keep-all; }
+        .panel-close {
+            position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.045);
+            color: rgba(255,255,255,0.72); cursor: pointer; transition: all 0.2s ease;
+        }
+        .panel-close:hover { color: white; background: rgba(255,255,255,0.1); }
+        .panel-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 18px; }
+        .panel-tab {
+            border: 1px solid rgba(255,255,255,0.09); border-radius: 999px; padding: 8px 4px;
+            background: rgba(255,255,255,0.035); color: rgba(255,255,255,0.48);
+            font-size: 10px; letter-spacing: -0.02em; cursor: pointer; transition: all 0.2s ease;
+        }
+        .panel-tab.active { border-color: rgba(250,204,21,0.42); color: rgba(254,240,138,0.95); background: rgba(250,204,21,0.09); box-shadow: 0 0 18px rgba(250,204,21,0.08); }
+        .panel-content { margin-top: 18px; }
+        .content-grid { display: grid; gap: 10px; }
+        .short-card, .atlas-card, .progress-card, .newsletter-card {
+            position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.085); border-radius: 18px;
+            background: rgba(255,255,255,0.045); padding: 14px; color: rgba(255,255,255,0.86);
+        }
+        .short-card { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: start; }
+        .short-number {
+            width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center;
+            background: rgba(250,204,21,0.1); border: 1px solid rgba(250,204,21,0.18); color: rgba(254,240,138,0.92);
+            font-size: 12px; letter-spacing: 0.03em;
+        }
+        .short-title { font-size: 13px; line-height: 1.35; font-weight: 400; color: rgba(255,255,255,0.92); }
+        .short-copy { margin-top: 4px; font-size: 11px; line-height: 1.55; color: rgba(226,241,249,0.62); word-break: keep-all; }
+        .short-status { margin-top: 8px; display: inline-flex; align-items: center; gap: 5px; font-size: 9px; letter-spacing: 0.08em; color: rgba(125,211,252,0.68); text-transform: uppercase; }
+        .short-link { text-decoration: none; }
+        .short-link:hover .short-card { border-color: rgba(125,211,252,0.26); background: rgba(125,211,252,0.075); }
+
+        .game-intro {
+            margin-bottom: 12px; padding: 13px 14px; border: 1px solid rgba(196,181,253,0.14); border-radius: 18px;
+            background: linear-gradient(135deg, rgba(168,85,247,0.09), rgba(125,211,252,0.045));
+            color: rgba(226,241,249,0.72); font-size: 11px; line-height: 1.75; word-break: keep-all;
+        }
+        .game-grid { display: grid; gap: 11px; }
+        .game-card {
+            position: relative; overflow: hidden; border: 1px solid rgba(255,255,255,0.09); border-radius: 20px;
+            background:
+                radial-gradient(circle at 8% 0%, rgba(168,85,247,0.14), transparent 34%),
+                radial-gradient(circle at 96% 18%, rgba(125,211,252,0.1), transparent 32%),
+                rgba(255,255,255,0.045);
+            padding: 15px; color: rgba(255,255,255,0.86);
+        }
+        .game-card-head { display: grid; grid-template-columns: 42px 1fr; gap: 12px; align-items: center; }
+        .game-icon {
+            width: 42px; height: 42px; border-radius: 15px; display: grid; place-items: center;
+            background: rgba(168,85,247,0.12); border: 1px solid rgba(196,181,253,0.22);
+            font-size: 21px; filter: drop-shadow(0 0 7px rgba(196,181,253,0.3));
+        }
+        .game-title { font-size: 14px; line-height: 1.35; font-weight: 400; color: rgba(255,255,255,0.94); }
+        .game-status { margin-top: 5px; font-size: 9px; letter-spacing: 0.12em; color: rgba(196,181,253,0.76); text-transform: uppercase; }
+        .game-copy { margin-top: 10px; font-size: 11px; line-height: 1.7; color: rgba(226,241,249,0.64); word-break: keep-all; }
+        .game-route {
+            display: block; margin-top: 10px; padding: 8px 10px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.16);
+            color: rgba(186,230,253,0.64); font-size: 10px; overflow-wrap: anywhere; user-select: text;
+        }
+        .game-button, .game-button-disabled {
+            display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; padding: 11px 12px;
+            border-radius: 999px; font-size: 11px; letter-spacing: 0.08em; text-decoration: none; transition: all 0.2s ease;
+        }
+        .game-button { border: 1px solid rgba(196,181,253,0.28); background: rgba(168,85,247,0.11); color: rgba(233,213,255,0.95); }
+        .game-button:hover { border-color: rgba(125,211,252,0.32); background: rgba(125,211,252,0.08); color: white; }
+        .game-button-disabled { border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.035); color: rgba(255,255,255,0.36); cursor: not-allowed; }
+
+        .brain-intro {
+            margin-bottom: 12px; padding: 13px 14px; border: 1px solid rgba(134,239,172,0.14); border-radius: 18px;
+            background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(125,211,252,0.045));
+            color: rgba(226,241,249,0.74); font-size: 11px; line-height: 1.75; word-break: keep-all;
+        }
+        .brain-board {
+            position: relative; overflow: hidden; border: 1px solid rgba(134,239,172,0.16); border-radius: 22px;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(134,239,172,0.10), transparent 34%),
+                linear-gradient(145deg, rgba(5, 34, 28, 0.88), rgba(4, 14, 21, 0.9));
+            box-shadow: inset 0 0 22px rgba(255,255,255,0.035), 0 0 24px rgba(34,197,94,0.055);
+            padding: 15px; color: rgba(236,253,245,0.9);
+        }
+        .brain-board::after {
+            content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.28;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.16) 0 1px, transparent 1px);
+            background-size: 18px 18px; mix-blend-mode: screen;
+        }
+        .brain-board-title { position: relative; z-index: 1; font-size: 13px; letter-spacing: 0.08em; color: rgba(220,252,231,0.92); }
+        .brain-board-layout { position: relative; z-index: 1; display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 12px; margin-top: 12px; }
+        .brain-left, .brain-right { border: 1px solid rgba(255,255,255,0.08); border-radius: 18px; padding: 12px; background: rgba(0,0,0,0.14); }
+        .chalk-label { font-size: 10px; letter-spacing: 0.14em; color: rgba(187,247,208,0.72); text-transform: uppercase; }
+        .chalk-list { margin-top: 9px; display: grid; gap: 7px; font-size: 11px; line-height: 1.55; color: rgba(240,253,244,0.75); }
+        .chalk-list span { display: block; padding-left: 12px; position: relative; word-break: keep-all; }
+        .chalk-list span::before { content: '·'; position: absolute; left: 0; color: rgba(187,247,208,0.75); }
+        .brain-slots { margin-top: 9px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+        .brain-slot {
+            min-height: 68px; border: 1px dashed rgba(240,253,244,0.2); border-radius: 15px; padding: 9px;
+            background: rgba(255,255,255,0.035); color: rgba(240,253,244,0.78); cursor: pointer;
+            transition: all 0.2s ease; text-align: left;
+        }
+        .brain-slot:hover { border-color: rgba(134,239,172,0.34); background: rgba(134,239,172,0.06); }
+        .brain-slot-time { display: block; font-size: 9px; letter-spacing: 0.12em; color: rgba(134,239,172,0.78); text-transform: uppercase; }
+        .brain-slot-task { display: block; margin-top: 7px; font-size: 11px; line-height: 1.45; word-break: keep-all; }
+        .brain-slot.erased { opacity: 0.42; }
+        .brain-slot.erased .brain-slot-task { text-decoration: line-through; text-decoration-thickness: 2px; text-decoration-color: rgba(255,255,255,0.65); }
+        .brain-ritual-grid { display: grid; gap: 9px; margin-top: 12px; }
+        .brain-ritual-card {
+            border: 1px solid rgba(255,255,255,0.085); border-radius: 18px; background: rgba(255,255,255,0.045);
+            padding: 13px; display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start;
+        }
+        .brain-ritual-no { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 13px; background: rgba(134,239,172,0.09); border: 1px solid rgba(134,239,172,0.18); color: rgba(187,247,208,0.9); font-size: 11px; }
+        .brain-ritual-title { font-size: 12px; color: rgba(255,255,255,0.9); }
+        .brain-ritual-copy { margin-top: 4px; font-size: 11px; line-height: 1.62; color: rgba(226,241,249,0.62); word-break: keep-all; }
+        .brain-channel-card {
+            margin-top: 12px; border: 1px solid rgba(125,211,252,0.13); border-radius: 20px;
+            background: linear-gradient(135deg, rgba(125,211,252,0.07), rgba(134,239,172,0.045)); padding: 14px;
+        }
+        .brain-channel-button, .brain-channel-button-disabled {
+            display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 10px; padding: 11px 12px;
+            border-radius: 999px; font-size: 11px; letter-spacing: 0.08em; text-decoration: none; transition: all 0.2s ease;
+        }
+        .brain-channel-button { border: 1px solid rgba(134,239,172,0.28); background: rgba(34,197,94,0.1); color: rgba(220,252,231,0.95); }
+        .brain-channel-button:hover { border-color: rgba(125,211,252,0.32); background: rgba(125,211,252,0.08); color: white; }
+        .brain-channel-button-disabled { border: 1px solid rgba(255,255,255,0.09); background: rgba(255,255,255,0.035); color: rgba(255,255,255,0.36); cursor: not-allowed; }
+
+        .atlas-card-title { display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,0.9); }
+        .atlas-card-title span:first-child { font-size: 17px; }
+        .atlas-card p { margin-top: 6px; font-size: 11px; line-height: 1.65; color: rgba(226,241,249,0.64); word-break: keep-all; }
+        .atlas-intro {
+            margin-bottom: 12px; padding: 13px 14px; border: 1px solid rgba(125,211,252,0.12); border-radius: 18px;
+            background: linear-gradient(135deg, rgba(125,211,252,0.07), rgba(250,204,21,0.045));
+            color: rgba(226,241,249,0.72); font-size: 11px; line-height: 1.75; word-break: keep-all;
+        }
+        .atlas-card {
+            text-align: left; width: 100%; cursor: pointer; appearance: none; -webkit-appearance: none;
+            transition: border-color 0.22s ease, background 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
+        }
+        .atlas-card:hover, .atlas-card.active {
+            border-color: rgba(250,204,21,0.28); background: rgba(250,204,21,0.075); transform: translateY(-1px);
+            box-shadow: 0 0 22px rgba(250,204,21,0.055);
+        }
+        .atlas-card.active::after {
+            content: ''; position: absolute; inset: auto 14px 12px 14px; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(250,204,21,0.48), transparent);
+        }
+        .atlas-detail-card {
+            margin-top: 12px; border: 1px solid rgba(125,211,252,0.16); border-radius: 22px; overflow: hidden;
+            background:
+                radial-gradient(circle at 12% 0%, rgba(250,204,21,0.12), transparent 34%),
+                radial-gradient(circle at 92% 20%, rgba(45,212,191,0.12), transparent 32%),
+                rgba(255,255,255,0.045);
+        }
+        .atlas-detail-head { padding: 16px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.075); }
+        .atlas-detail-title { display: flex; align-items: center; gap: 9px; font-size: 16px; color: rgba(255,255,255,0.94); }
+        .atlas-detail-title span:first-child { font-size: 22px; }
+        .atlas-detail-subtitle { margin-top: 5px; font-size: 11px; line-height: 1.6; color: rgba(254,240,138,0.78); word-break: keep-all; }
+        .atlas-detail-body { display: grid; gap: 9px; padding: 14px 16px 16px; }
+        .atlas-detail-row { display: grid; gap: 4px; }
+        .atlas-detail-label { font-size: 9px; letter-spacing: 0.16em; color: rgba(125,211,252,0.62); text-transform: uppercase; }
+        .atlas-detail-text { font-size: 11px; line-height: 1.7; color: rgba(226,241,249,0.72); word-break: keep-all; }
+        .atlas-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 4px; }
+        .atlas-jump {
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; padding: 10px 8px;
+            background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.64); font-size: 10px; cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .atlas-jump:hover { border-color: rgba(125,211,252,0.28); color: rgba(186,230,253,0.95); background: rgba(125,211,252,0.07); }
+        .progress-list { display: grid; gap: 9px; margin-top: 10px; }
+        .progress-row { display: grid; grid-template-columns: 24px 1fr auto; align-items: center; gap: 8px; font-size: 11px; color: rgba(226,241,249,0.7); }
+        .progress-dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(125,211,252,0.34); box-shadow: 0 0 12px rgba(125,211,252,0.25); justify-self: center; }
+        .progress-tag { font-size: 9px; color: rgba(254,240,138,0.65); border: 1px solid rgba(254,240,138,0.17); border-radius: 999px; padding: 3px 7px; }
+        .progress-tag.wait { color: rgba(255,255,255,0.38); border-color: rgba(255,255,255,0.1); }
+        .newsletter-input {
+            width: 100%; margin-top: 12px; padding: 12px 14px; border-radius: 999px;
+            border: 1px solid rgba(255,255,255,0.12); outline: none;
+            background: rgba(0,0,0,0.18); color: white; font-size: 13px;
+        }
+        .newsletter-button {
+            width: 100%; margin-top: 10px; padding: 12px 14px; border-radius: 999px;
+            border: 1px solid rgba(250,204,21,0.28); background: rgba(250,204,21,0.1);
+            color: rgba(254,240,138,0.95); font-size: 12px; letter-spacing: 0.08em; cursor: pointer;
+        }
+        .newsletter-note { margin-top: 10px; min-height: 18px; font-size: 11px; color: rgba(125,211,252,0.76); text-align: center; }
+
+
+
+        /* 개인 은하 성장별 */
+        .growth-star {
+            position: absolute; left: 50%; top: 45%; transform: translate(-50%, -50%) scale(0.92);
+            width: 82px; height: 82px; border-radius: 999px; display: grid; place-items: center;
+            cursor: pointer; z-index: 55; opacity: 0; pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.16);
+            background:
+                radial-gradient(circle at 35% 28%, rgba(255,255,255,0.82), transparent 18%),
+                radial-gradient(circle at 50% 50%, rgba(125,211,252,0.38), rgba(168,85,247,0.12) 48%, rgba(255,255,255,0.04) 72%);
+            box-shadow: 0 0 26px rgba(125,211,252,0.22), inset 0 0 24px rgba(255,255,255,0.08);
+            transition: opacity .6s ease, transform .6s ease, filter .4s ease;
+        }
+        .growth-star.visible { opacity: 1; pointer-events: auto; }
+        .growth-star.awake { animation: star-wiggle 2.2s ease-in-out infinite; box-shadow: 0 0 38px rgba(250,204,21,0.28), 0 0 68px rgba(125,211,252,0.14), inset 0 0 24px rgba(255,255,255,0.10); }
+        .growth-star.sparked { animation: star-spark .9s ease-out 1; filter: brightness(1.8) saturate(1.5); }
+        .growth-star-core { font-size: 31px; filter: drop-shadow(0 0 12px rgba(255,255,255,0.72)); }
+        @keyframes star-wiggle { 0%,100% { transform: translate(-50%,-50%) scale(0.96) rotate(-1deg); } 50% { transform: translate(-50%,-50%) scale(1.05) rotate(1deg); } }
+        @keyframes star-spark { 0% { transform: translate(-50%,-50%) scale(1); } 45% { transform: translate(-50%,-50%) scale(1.28); } 100% { transform: translate(-50%,-50%) scale(1.02); } }
+        .galaxy-status-card {
+            position: absolute; left: 50%; top: 18%; transform: translateX(-50%); z-index: 56;
+            width: min(420px, calc(100vw - 32px)); text-align: center; pointer-events: none;
+            color: rgba(226,241,249,0.72); font-size: 12px; line-height: 1.7; word-break: keep-all;
+            padding: 14px 16px; border-radius: 22px; border: 1px solid rgba(125,211,252,0.12);
+            background: rgba(3, 7, 18, 0.42); backdrop-filter: blur(8px);
+        }
+        .galaxy-note-card {
+            position: absolute; left: 50%; bottom: 120px; transform: translateX(-50%) translateY(16px);
+            z-index: 58; width: min(420px, calc(100vw - 32px)); opacity: 0; pointer-events: none;
+            border: 1px solid rgba(250,204,21,0.18); border-radius: 24px;
+            background: rgba(3, 7, 18, 0.72); backdrop-filter: blur(14px); padding: 16px;
+            transition: opacity .3s ease, transform .3s ease;
+        }
+        .galaxy-note-card.active { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+        .galaxy-note-title { font-size: 13px; color: rgba(255,255,255,0.9); letter-spacing: 0.08em; }
+        .galaxy-note-copy { margin-top: 6px; font-size: 11px; line-height: 1.65; color: rgba(226,241,249,0.6); }
+        .galaxy-note-input {
+            width: 100%; min-height: 88px; margin-top: 12px; resize: vertical; border-radius: 18px;
+            border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.045);
+            color: white; padding: 12px; outline: none; font-size: 13px; line-height: 1.55;
+        }
+        .galaxy-note-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+        .galaxy-note-button {
+            border-radius: 999px; border: 1px solid rgba(125,211,252,0.22); background: rgba(125,211,252,0.08);
+            color: rgba(186,230,253,0.95); padding: 10px; font-size: 11px; cursor: pointer;
+        }
+        .galaxy-note-button.secondary { border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.58); }
+        .galaxy-note-saved { margin-top: 8px; min-height: 16px; font-size: 10px; color: rgba(250,204,21,0.72); text-align: center; }
+
+        @media (max-width: 767px) {
+            .planet-backdrop { background: rgba(2, 2, 8, 0.58); }
+            .planet-panel {
+                top: auto; right: 10px; left: 10px; bottom: 10px; width: auto;
+                max-height: min(78dvh, 680px); border-radius: 26px 26px 22px 22px;
+                transform: translateY(28px) scale(0.99);
+            }
+            .planet-panel.active { transform: translateY(0) scale(1); }
+            .planet-panel-inner { padding: 22px 16px 18px; }
+            .panel-title { font-size: 21px; }
+            .panel-tabs { grid-template-columns: repeat(2, 1fr); }
+        }
+
+
+        @media (max-width: 520px) {
+            .brain-board-layout { grid-template-columns: 1fr; }
+            .brain-slots { grid-template-columns: 1fr 1fr; }
+            .brain-slot { min-height: 62px; }
+        }
+
     </style>
 </head>
 <body>
@@ -112,6 +425,15 @@
     <div id="hologram-tooltip" class="hologram-box"></div>
     <div id="hologram-line" class="hologram-line"></div>
 
+
+    <div id="planet-backdrop" class="planet-backdrop" aria-hidden="true"></div>
+    <aside id="planet-panel" class="planet-panel" aria-hidden="true" aria-label="성좌 상세 관측창">
+        <button id="planet-panel-close" class="panel-close" type="button" aria-label="성좌 관측창 닫기">×</button>
+        <div class="planet-panel-inner">
+            <div id="planet-panel-body"></div>
+        </div>
+    </aside>
+
     <div id="idle-overlay" class="absolute inset-0 bg-[#020206]/85 backdrop-blur-md opacity-0 pointer-events-none transition-all duration-1000 z-40 flex flex-col items-center justify-center">
         <div id="idle-first-time" class="text-center space-y-6">
             <p class="text-xl font-light tracking-widest text-sky-100/90 animate-pulse">"너의 기다림이 별을 낳았어."</p>
@@ -131,6 +453,20 @@
 
     <div id="sub-galaxy-layer" class="absolute inset-0 bg-[#020207] opacity-0 pointer-events-none transition-opacity duration-1000 z-45 flex items-center justify-center">
         <canvas id="sub-galaxy-canvas" class="absolute inset-0 w-full h-full"></canvas>
+        <div id="galaxy-status-card" class="galaxy-status-card">아직 활성화되지 않은 별들이 천천히 움직이고 있어요.</div>
+        <button id="growth-star" class="growth-star" type="button" aria-label="나의 성장별 쓰다듬기">
+            <span class="growth-star-core">✦</span>
+        </button>
+        <div id="galaxy-note-card" class="galaxy-note-card" aria-hidden="true">
+            <div class="galaxy-note-title">PRIVATE STAR NOTE</div>
+            <div class="galaxy-note-copy">이 한마디는 이 브라우저 안에만 조용히 남아요. 서버로 보내지지 않고, 아무도 볼 수 없어요.</div>
+            <textarea id="galaxy-note-input" class="galaxy-note-input" maxlength="180" placeholder="오늘 잠깐 남기고 싶은 말..."></textarea>
+            <div class="galaxy-note-actions">
+                <button id="galaxy-note-save" class="galaxy-note-button" type="button">별 안에 접어두기</button>
+                <button id="galaxy-note-close" class="galaxy-note-button secondary" type="button">닫기</button>
+            </div>
+            <div id="galaxy-note-saved" class="galaxy-note-saved"></div>
+        </div>
         <div class="absolute bottom-16 text-center z-50">
             <h2 id="named-galaxy-title" class="text-lg font-light tracking-widest text-white/80 mb-1"></h2>
             <p class="text-[10px] tracking-wider text-white/30">개인 세션 기반 실시간 관측 구역</p>
@@ -174,24 +510,25 @@
 
         // --- 🪐 우주 행성 메타 데이터 (은하 비단길 신규 추가) ---
         const planetsData = [
-            { name: '하차니아', type: 'active-main', radius: 170, speed: 0.0012, size: 65, color: 'rgba(239, 68, 68, 0.12)', stroke: 'rgba(239, 68, 68, 0.4)', text: '300+ 쇼츠 아카이브 성운' },
-            { name: 'fiftyology', type: 'active-main', radius: 260, speed: -0.0008, size: 70, color: 'rgba(14, 116, 144, 0.12)', stroke: 'rgba(34, 211, 238, 0.4)', text: '150+ 고감도 정체성 기지' },
-            { name: '하찮은 게임위성', type: 'active-sat', radius: 110, speed: 0.0025, size: 45, color: 'rgba(168, 85, 247, 0.08)', stroke: 'rgba(168, 85, 247, 0.4)', text: '싹싹게임 & 등짝스메싱 MVP 구동존' },
+            { name: '하차니아', shortName: '하차니아', icon: '🌺', type: 'active-main', radius: 170, speed: 0.0012, size: 68, color: 'rgba(239, 68, 68, 0.14)', stroke: 'rgba(239, 68, 68, 0.48)', text: '300+ 쇼츠 아카이브 성운' },
+            { name: 'fiftyology', shortName: '50학', icon: '🪞', type: 'active-main', radius: 260, speed: -0.0008, size: 72, color: 'rgba(14, 116, 144, 0.14)', stroke: 'rgba(34, 211, 238, 0.48)', text: '150+ 고감도 정체성 기지' },
+            { name: '하찮은 게임위성', shortName: '게임', icon: '🎮', type: 'active-sat', radius: 110, speed: 0.0025, size: 50, color: 'rgba(168, 85, 247, 0.12)', stroke: 'rgba(168, 85, 247, 0.48)', text: '싹싹게임 · 엄갱딸기 잔소리 소나기 · 낭만사우루스 알바단 게임 로비' },
+            { name: '생각많망뇌', shortName: '많망뇌', icon: '🧠', type: 'active-sat', radius: 305, speed: 0.00105, size: 56, color: 'rgba(34, 197, 94, 0.11)', stroke: 'rgba(134, 239, 172, 0.44)', text: '칠판 위에 오늘 할 일을 적고, 밤에는 지우며 실패까지 기록하는 1분 아날로그 위성' },
             
             // ✨ [신규 글로벌 컨셉] 은하 비단길: 비활성화 상태로 짜잔 오픈 대기 모드
-            { name: '은하 비단길', type: 'inactive', radius: 370, speed: 0.0006, size: 55, color: 'rgba(20, 184, 166, 0.03)', stroke: 'rgba(45, 212, 191, 0.25)', text: '🔮 [The Silk Way] 짜잔-! 눈부시게 아름다운 우주의 비단 옷자락이 곧 이곳에 펼쳐집니다. \'이 아름다운 비단... 전부 내 거야!\' (Global DIY Hanbok Package Coming Soon)' },
+            { name: '은하 비단길', shortName: '비단길', icon: '🧵', type: 'inactive', radius: 370, speed: 0.0006, size: 58, color: 'rgba(20, 184, 166, 0.07)', stroke: 'rgba(45, 212, 191, 0.32)', text: '🔮 [The Silk Way] 짜잔-! 눈부시게 아름다운 우주의 비단 옷자락이 곧 이곳에 펼쳐집니다. \'이 아름다운 비단... 전부 내 거야!\' (Global DIY Hanbok Package Coming Soon)' },
             
-            { name: '바지찾아삼만리위성', type: 'active-sat', radius: 430, speed: 0.0007, size: 52, color: 'rgba(234, 179, 8, 0.08)', stroke: 'rgba(234, 179, 8, 0.4)', text: '월간 20벌 한정판 물질화 빌드라인' },
-            { name: '꼰데 가르송 위성', type: 'active-sat', radius: 490, speed: -0.0005, size: 48, color: 'rgba(244, 63, 94, 0.08)', stroke: 'rgba(244, 63, 94, 0.4)', text: '독창적 룩북 & 취향 가르송 아카이브' },
-            { name: '편집중', type: 'inactive', radius: 210, speed: 0.0015, size: 40, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.15)', text: '⚠️ 마감 임박 성운: 현재 쇼츠 렌더링 99%에서 멈춘 듯함. 대표님이 밤새 마우스를 클릭하고 있습니다.' },
-            { name: '뻘짓중', type: 'inactive', radius: 320, speed: -0.0014, size: 42, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.15)', text: '🔮 무익함의 미학: 인생에 꼭 필요한 \'생산적 딴짓\'을 관측 중입니다. 건드리면 쓸데없는 아이디어가 폭발하니 주의하세요.' },
-            { name: '조만간', type: 'inactive', radius: 140, speed: -0.002, size: 38, color: 'rgba(220, 38, 38, 0.04)', stroke: 'rgba(220, 38, 38, 0.3)', text: '🔥 행성 충돌 D-30: 한 땀 한 땀 바지가 자라나는 중. 한 달 뒤 20벌 한정판 물질화 완료.' },
-            { name: '멀었음', type: 'inactive', radius: 550, speed: 0.0003, size: 40, color: 'rgba(30, 41, 59, 0.15)', stroke: 'rgba(148, 163, 184, 0.15)', text: '❄️ 절대 영도 영역: 기획서 첫 줄 쓰다 엎음. 아이디어 동결 상태.' },
-            { name: '10년후', type: 'inactive', radius: 610, speed: -0.0002, size: 35, color: 'rgba(255,255,255,0.01)', stroke: 'rgba(255,255,255,0.08)', text: '🚀 먼 미래의 나에게: 미래의 대기업 \'묾\' 우주 본사 부지 예약 공간.' }
+            { name: '바지찾아삼만리위성', shortName: '바지', icon: '👖', type: 'active-sat', radius: 430, speed: 0.0007, size: 56, color: 'rgba(234, 179, 8, 0.12)', stroke: 'rgba(234, 179, 8, 0.48)', text: '월간 20벌 한정판 물질화 빌드라인' },
+            { name: '꼰데 가르송 위성', shortName: '꼰데', icon: '✂️', type: 'active-sat', radius: 490, speed: -0.0005, size: 54, color: 'rgba(244, 63, 94, 0.11)', stroke: 'rgba(244, 63, 94, 0.46)', text: '독창적 룩북 & 취향 가르송 아카이브' },
+            { name: '편집중', shortName: '편집', icon: '🎬', type: 'inactive', radius: 210, speed: 0.0015, size: 46, color: 'rgba(255,255,255,0.045)', stroke: 'rgba(255,255,255,0.22)', text: '⚠️ 마감 임박 성운: 현재 쇼츠 렌더링 99%에서 멈춘 듯함. 대표님이 밤새 마우스를 클릭하고 있습니다.' },
+            { name: '뻘짓중', shortName: '뻘짓', icon: '🫧', type: 'inactive', radius: 320, speed: -0.0014, size: 48, color: 'rgba(255,255,255,0.045)', stroke: 'rgba(255,255,255,0.22)', text: '🔮 무익함의 미학: 인생에 꼭 필요한 \'생산적 딴짓\'을 관측 중입니다. 건드리면 쓸데없는 아이디어가 폭발하니 주의하세요.' },
+            { name: '조만간', shortName: '조만간', icon: '🔥', type: 'inactive', radius: 140, speed: -0.002, size: 44, color: 'rgba(220, 38, 38, 0.08)', stroke: 'rgba(220, 38, 38, 0.36)', text: '🔥 행성 충돌 D-30: 한 땀 한 땀 바지가 자라나는 중. 한 달 뒤 20벌 한정판 물질화 완료.' },
+            { name: '멀었음', shortName: '멀었음', icon: '❄️', type: 'inactive', radius: 550, speed: 0.0003, size: 44, color: 'rgba(30, 41, 59, 0.18)', stroke: 'rgba(148, 163, 184, 0.23)', text: '❄️ 절대 영도 영역: 기획서 첫 줄 쓰다 엎음. 아이디어 동결 상태.' },
+            { name: '10년후', shortName: '10년후', icon: '🚀', type: 'inactive', radius: 610, speed: -0.0002, size: 42, color: 'rgba(255,255,255,0.04)', stroke: 'rgba(255,255,255,0.16)', text: '🚀 먼 미래의 나에게: 미래의 대기업 \'묾\' 우주 본사 부지 예약 공간.' }
         ];
 
         let angleOffsets = planetsData.map(() => Math.random() * Math.PI * 2);
-        let idleTimer; let isUniverseActive = false; let isIdleTriggered = false;
+        let idleTimer; let isUniverseActive = false; let isIdleTriggered = false; let isSubGalaxyOpen = false; let externalLinkGuardUntil = 0; let visitRegisteredThisPage = false;
 
         const cursor = document.getElementById('custom-cursor'); const entryLayer = document.getElementById('entry-layer'); const startBtn = document.getElementById('start-btn');
         const openingLayer = document.getElementById('opening-layer'); const jamoContainer = document.getElementById('jamo-container'); const mainLogo = document.getElementById('main-logo');
@@ -199,6 +536,226 @@
         const hologramTooltip = document.getElementById('hologram-tooltip'); const hologramLine = document.getElementById('hologram-line');
         const idleOverlay = document.getElementById('idle-overlay'); const starNameInput = document.getElementById('star-name-input'); const saveStarBtn = document.getElementById('save-star-btn');
         const subGalaxyLayer = document.getElementById('sub-galaxy-layer'); const namedGalaxyTitle = document.getElementById('named-galaxy-title'); const exitGalaxyBtn = document.getElementById('exit-galaxy-btn');
+        const growthStar = document.getElementById('growth-star'); const galaxyStatusCard = document.getElementById('galaxy-status-card'); const galaxyNoteCard = document.getElementById('galaxy-note-card'); const galaxyNoteInput = document.getElementById('galaxy-note-input'); const galaxyNoteSave = document.getElementById('galaxy-note-save'); const galaxyNoteClose = document.getElementById('galaxy-note-close'); const galaxyNoteSaved = document.getElementById('galaxy-note-saved');
+
+        const planetBackdrop = document.getElementById('planet-backdrop');
+        const planetPanel = document.getElementById('planet-panel');
+        const planetPanelBody = document.getElementById('planet-panel-body');
+        const planetPanelClose = document.getElementById('planet-panel-close');
+        let isPlanetPanelOpen = false;
+        let activePanelPlanet = null;
+        let activePantsAtlasId = 'pressure';
+        let activeHachaniaCharacterId = 'crown-cat';
+
+        const hachaniaChannelURL = '';
+        const hachaniaCharacters = [
+            {
+                id: 'crown-cat', icon: '👑', name: '왕관고양이', role: '철학과 그냥 해 담당', representative: '그냥 해',
+                desc: '고상한 왕관을 쓰고 있지만, 결국 오늘의 손을 움직이게 만드는 작은 철학자.',
+                shorts: [
+                    { title: '그냥 해', tag: '입문', copy: '생각이 길어질수록 손은 늦어진다. 왕관고양이의 첫 처방.', link: '' },
+                    { title: '일단 참아', tag: '철학', copy: '분노가 올라올 때 고상한 척이라도 해보는 실험.', link: '' },
+                    { title: '덕질해', tag: '행복', copy: '행복을 너무 멀리 찾지 말고, 오늘의 덕을 하나 집어 드는 이야기.', link: '' }
+                ]
+            },
+            {
+                id: 'umgang', icon: '🍓', name: '엄갱딸기', role: '갱년기 엄마와 사춘기 딸 담당', representative: '리모컨 전쟁',
+                desc: '한 집 안에 두 온도, 두 속도, 두 개의 우주가 사는 생활 코미디.',
+                shorts: [
+                    { title: '리모컨 전쟁', tag: '입문', copy: '엄마의 온도와 딸의 온도가 한 리모컨에서 충돌한다.', link: '' },
+                    { title: '라면 사건', tag: '냄새', copy: '붓기와 환기와 설거지가 한밤중에 회동한 기록.', link: '' },
+                    { title: '기다림 사건', tag: '현관', copy: '엄마는 현관에서 늙고, 딸은 침대에서 대기한다.', link: '' }
+                ]
+            },
+            {
+                id: 'hadeogi', icon: '🦆', name: '하더기', role: '집착과 거의 날뻔 담당', representative: '거의 날뻔',
+                desc: '바나나껍질과 공기저항 사이에서 존재론을 끌고 다니는 오리.',
+                shorts: [
+                    { title: '거의 날뻔', tag: '입문', copy: '날지는 못했지만, 거의 날았다는 자기 확신의 기록.', link: '' },
+                    { title: '바나나껍질 수집', tag: '집착', copy: '쓸모없어 보이는 것에 인생의 방향을 걸어보는 오리.', link: '' },
+                    { title: '돌 끌기', tag: '침묵', copy: '침묵은 가끔 돌처럼 뒤에서 끌려온다.', link: '' }
+                ]
+            },
+            {
+                id: 'kkoraji', icon: '🦎', name: '꼬라지', role: '사춘기와 거의울뻔 담당', representative: '나 사춘기야',
+                desc: '방어적인 표정과 부드러운 속마음 사이에서 색이 바뀌는 카멜레온형 존재.',
+                shorts: [
+                    { title: '나 사춘기야', tag: '입문', copy: '설명보다 먼저 방어막이 켜지는 나이의 선언.', link: '' },
+                    { title: '거의울뻔', tag: '밈', copy: '운 것은 아니고, 세계가 잠깐 습해진 것뿐이라는 주장.', link: '' },
+                    { title: '나는 누구?', tag: '정체성', copy: '거울 앞에서 대답보다 표정이 먼저 바뀌는 순간.', link: '' }
+                ]
+            },
+            {
+                id: 'forget', icon: '🦓', name: '포겟이', role: '기억과 변신 담당', representative: '꽃으로 살래',
+                desc: '기억이 흐려지는 자리에서 줄무늬 대신 다른 생을 상상하는 얼룩말.',
+                shorts: [
+                    { title: '꽃으로 살래', tag: '입문', copy: '기억보다 먼저 꽃이 되고 싶은 조용한 변신.', link: '' },
+                    { title: '물개로 살래', tag: '물멍', copy: '생각보다 먼저 물 위에 떠 있고 싶은 날.', link: '' },
+                    { title: '줄무늬를 잃어버림', tag: '기억', copy: '자기 무늬가 조금 흐려지는 순간의 작은 기록.', link: '' }
+                ]
+            },
+            {
+                id: 'odd-otter', icon: '🦦', name: '수상해달', role: '실험과 의심 담당', representative: '부력 실험',
+                desc: '민트 니트를 입고, 감정도 물리처럼 실험하려는 조용한 해달.',
+                shorts: [
+                    { title: '부력 실험', tag: '입문', copy: '마음이 가라앉을 때도 부력으로 설명하려는 보고서.', link: '' },
+                    { title: '우주 낚시', tag: '우주', copy: '별 사이에 미끼를 던지고 결과를 기다리는 이상한 실험.', link: '' },
+                    { title: '마음방수', tag: '감정', copy: '방수처리로도 마음은 완전히 마르지 않는다는 결론.', link: '' }
+                ]
+            },
+            {
+                id: 'romantic-saurus', icon: '🦕', name: '낭만사우루스', role: '라면과 낭만 배송 담당', representative: '은하라면 익스프레스',
+                desc: '라면 김과 입김을 구분하지 못해도 낭만만은 끝까지 배달하는 공룡.',
+                shorts: [
+                    { title: '은하라면 익스프레스', tag: '입문', copy: '라면 하나를 들고 은하를 건너는 낭만 배송 기록.', link: '' },
+                    { title: '라면 김 vs 입김', tag: '라면', copy: '따뜻한 것이 어디서 나오는지 헷갈리는 장면.', link: '' },
+                    { title: '엄갱딸기별 배달', tag: '배달', copy: '가장 시끄러운 별에 가장 뜨거운 라면을 배달한다.', link: '' }
+                ]
+            },
+            {
+                id: 'hachanko', icon: '🐘', name: '하찮코&하찮우', role: '달 산책과 우정 담당', representative: '달 산책',
+                desc: '하찮지만 서로에게는 꽤 큰 우주가 되는 코끼리와 우주인 듀오.',
+                shorts: [
+                    { title: '달 산책', tag: '입문', copy: '꽃잎 리드줄을 잡고 달 위를 걷는 작은 우정.', link: '' },
+                    { title: '숨이 막혀', tag: '관계', copy: '가까움과 답답함이 같은 헬멧 안에 들어온 날.', link: '' },
+                    { title: '달 서핑', tag: '꿈', copy: '현실보다 조금 가벼운 곳에서 균형을 잡는 꿈.', link: '' }
+                ]
+            },
+            {
+                id: 'doctor-hoo', icon: '🩺', name: '닥터후우', role: '숨 고르기와 한숨 처방 담당', representative: '후우, 숨부터 쉬어',
+                desc: '우주 진료실에서 과열된 마음에게 작은 한숨과 쉬는 시간을 처방하는 캐릭터.',
+                shorts: [
+                    { title: '후우, 숨부터 쉬어', tag: '입문', copy: '해결보다 먼저 숨을 한번 빼는 닥터후우의 첫 진료.', link: '' },
+                    { title: '한숨 처방전', tag: '회복', copy: '한숨은 포기가 아니라 과열된 뇌의 배출구라는 진단.', link: '' },
+                    { title: '오늘은 과진료 금지', tag: '쉼', copy: '생각을 너무 검사하다가 하루가 입원해버린 날.', link: '' }
+                ]
+            }
+        ];
+
+        const pantsShorts = [
+            { no: '01', title: '바지는 피팅룸에서 거짓말한다', copy: '서 있을 땐 합격. 앉는 순간, 계약서의 작은 글씨가 보이기 시작한다.', status: '관측중', link: '' },
+            { no: '02', title: '앉는 순간, 바지의 인성이 드러난다', copy: '핏은 서 있을 때 보이지만, 편안함은 앉을 때 들통난다.', status: '대표 쇼츠', link: '' },
+            { no: '03', title: '밥 먹은 나를 인정하지 않는다', copy: '한 끼 먹었다고 허리가 사람을 심문하는 바지에 대한 기록.', status: '제작 후보', link: '' },
+            { no: '04', title: '고기 뷔페 단추 발사 사건', copy: '버튼 하나가 우주선처럼 떠나려는 순간. 사회적 재난 직전의 정적.', status: '웃김 담당', link: '' },
+            { no: '05', title: '일어서면 무릎 발사', copy: '앉아 있던 시간만큼 무릎이 기억을 부풀리는 현상.', status: '제품 근거', link: '' },
+            { no: '06', title: '겉은 정장바지, 속은 라운지팬츠', copy: '단정함의 얼굴과 느슨함의 속마음. ㅁ ㅜ ㄹ ㅁ pants의 첫 문장.', status: '제품 연결', link: '' },
+            { no: '07', title: '내 옷장 속 바지 무덤', copy: '언젠가 입겠다는 말 아래 잠든 267,000원의 영혼들.', status: '보너스', link: '' },
+            { no: '08', title: '바지 찾아 삼만리, 하더기 편', copy: '뒤에서 자꾸 사라지는 바지를 찾아 떠나는 픽셀 오리의 비장한 항해.', status: '캐릭터 연결', link: '' },
+            { no: '09', title: '편한데 왜 후줄근한가', copy: '편함과 단정함 사이의 깊은 협곡. 우리는 거기에 다리를 놓는다.', status: '신규', link: '' },
+            { no: '10', title: '배를 괴롭히지 않는 옷', copy: '몸을 설득하려 들지 않고, 조용히 자리를 내어주는 바지에 관하여.', status: '신규', link: '' }
+        ];
+
+        const pantsAtlas = [
+            {
+                id: 'pressure', icon: '🫃', title: '압박형',
+                subtitle: '식후 허리가 사람을 심문하는 유형',
+                symptom: '밥을 먹은 죄밖에 없는데, 허리밴드가 갑자기 심문을 시작한다.',
+                joke: '단추는 증인석에 앉고, 지퍼는 묵비권을 행사한다.',
+                need: '배를 누르지 않고, 식후 몸의 변화를 받아주는 허리 구조.',
+                shortNo: 'EP.03', shortTitle: '밥 먹은 나를 인정하지 않는다',
+                buildPoint: '부드럽지만 무너지지 않는 허리, 오래 앉아도 파고들지 않는 밴드 강도.'
+            },
+            {
+                id: 'fold', icon: '📎', title: '접힘형',
+                subtitle: '앉는 순간 모든 것이 접히는 유형',
+                symptom: '배도 접히고, 원단도 접히고, 잠깐이지만 자존감도 같이 접힌다.',
+                joke: '의자는 가구가 아니라, 바지의 성격검사 도구다.',
+                need: '앉았을 때 앞판이 우그러지지 않는 여유와 복원력.',
+                shortNo: 'EP.02', shortTitle: '앉는 순간, 바지의 인성이 드러난다',
+                buildPoint: '앞판 여유량, 밑위 깊이, 앉은 자세에서 생기는 가로 주름 제어.'
+            },
+            {
+                id: 'move', icon: '🛗', title: '이동형',
+                subtitle: '걸을수록 바지가 자기 길을 가는 유형',
+                symptom: '나는 앞으로 가는데, 바지는 위로 가거나 뒤로 간다.',
+                joke: '착용자는 출근 중인데, 바지는 독립운동 중이다.',
+                need: '밑위, 힙, 허벅지 균형이 안정적인 패턴.',
+                shortNo: 'EP.08', shortTitle: '바지 찾아 삼만리, 하더기 편',
+                buildPoint: '힙과 허벅지의 당김 방향을 줄이고, 걸을 때 말려 올라가지 않는 패턴 균형.'
+            },
+            {
+                id: 'denial', icon: '🙅', title: '부정형',
+                subtitle: '몸이 아니라 바지가 현실을 부정하는 유형',
+                symptom: '내 몸은 그대로 있는데, 바지만 나를 어제의 나로 우기고 있다.',
+                joke: '바지가 기억상실에 걸렸다. 오늘의 몸을 모른다.',
+                need: '하루 컨디션 변화를 견디는 유연한 핏.',
+                shortNo: 'EP.10', shortTitle: '배를 괴롭히지 않는 옷',
+                buildPoint: '컨디션 변화, 부기, 식후 체형을 받아주는 허리와 복부 공간.'
+            },
+            {
+                id: 'mask', icon: '🎭', title: '위장형',
+                subtitle: '서 있을 때만 예의 바른 유형',
+                symptom: '피팅룸에서는 단정했다. 하지만 의자 앞에서 본색을 드러냈다.',
+                joke: '서 있을 때의 핏은 자기소개서, 앉았을 때의 핏은 실무평가다.',
+                need: '서 있을 때보다 앉아 있을 때 더 검증된 실루엣.',
+                shortNo: 'EP.01', shortTitle: '바지는 피팅룸에서 거짓말한다',
+                buildPoint: '서 있는 정면 사진보다 식탁, 운전석, 대기실 자세에서 무너지지 않는 선.'
+            },
+            {
+                id: 'avoid', icon: '🪦', title: '회피형',
+                subtitle: '입을 바지가 많은데 결국 같은 바지만 입는 유형',
+                symptom: '옷장엔 바지가 있다. 하지만 믿을 수 있는 바지는 하나뿐이다.',
+                joke: '나머지는 의류가 아니라, 조용한 영수증 화석이다.',
+                need: '손이 자주 가는 편안함과 밖에 나갈 수 있는 단정함.',
+                shortNo: 'EP.07', shortTitle: '내 옷장 속 바지 무덤',
+                buildPoint: '라운지팬츠의 편안함과 외출 가능한 단정함을 동시에 만족시키는 소재와 실루엣.'
+            }
+        ];
+        const pantsProgress = [
+            { task: '바지 불편 도감 6종 인터랙션 정리', tag: '진행중' },
+            { task: '쇼츠 10개 관측 아카이브 구성', tag: '진행중' },
+            { task: '테일러드 핏 스웻 팬츠 콘셉트 정리', tag: '진행중' },
+            { task: '샘플 패턴 방향 확정', tag: '대기' },
+            { task: '착용 테스트 10명 모집', tag: '대기' },
+            { task: 'ㅁ ㅜ ㄹ ㅁ pants 001/050 프리오더', tag: '대기' }
+        ];
+
+        const hachaniaGames = [
+            {
+                id: 'ssakssak', icon: '🧹', title: '싹싹게임',
+                subtitle: '먼지, 알림, 피곤함을 손끝으로 싹싹 지우는 청소형 게임',
+                status: '입구 준비중',
+                route: '/games/ssakssak/',
+                ready: false
+            },
+            {
+                id: 'umgang-rain', icon: '🍓', title: '엄갱딸기 잔소리 소나기',
+                subtitle: '쏟아지는 잔소리를 피하고 버티는 생활 재난 미니게임',
+                status: '입구 준비중',
+                route: '/games/umgang-rain/',
+                ready: false
+            },
+            {
+                id: 'romantic-saurus', icon: '🦕', title: '낭만사우루스 알바단',
+                subtitle: '알바의 소용돌이 속에서도 낭만을 잃지 않는 생존형 게임',
+                status: '입구 준비중',
+                route: '/games/romantic-saurus/',
+                ready: false
+            }
+        ];
+
+        const thoughtBrainChannelURL = '';
+        const thoughtBrainLeftList = [
+            '머릿속에 떠다니는 할 일을 전부 왼쪽에 쏟아내기',
+            '중요해 보이는 일과 그냥 시끄러운 생각을 분리하기',
+            '오늘 반드시 해야 하는 일만 오른쪽 6칸으로 옮기기',
+            '저녁에 끝난 일은 지우고, 남은 일은 내일의 뇌로 이월하기'
+        ];
+        const thoughtBrainSlots = [
+            { time: '오전 1', task: '가장 덜 미룰 일' },
+            { time: '오전 2', task: '작지만 끝낼 수 있는 일' },
+            { time: '오후 1', task: '연락 / 정리 / 행정' },
+            { time: '오후 2', task: '오늘의 진짜 작업' },
+            { time: '저녁 1', task: '끝난 일 지우기' },
+            { time: '저녁 2', task: '못한 나를 너무 때리지 않기' }
+        ];
+        const thoughtBrainRitual = [
+            { no: '01', title: '왼쪽: 생각 배출구', copy: '할 일을 예쁘게 정리하기 전에, 먼저 머릿속 소음을 칠판 위로 꺼냅니다.' },
+            { no: '02', title: '오른쪽: 6칸 현실 구역', copy: '오전, 오후, 저녁으로 나누어 오늘 실제로 움직일 수 있는 일만 넣습니다.' },
+            { no: '03', title: '저녁: 지우는 의식', copy: '끝난 일은 지우고, 못한 일은 실패가 아니라 다음 날로 넘어가는 증거로 남깁니다.' },
+            { no: '04', title: '기록: 1분 이하', copy: '칠판, 분필, 손, 소리만으로 하루의 계획과 무너짐을 짧게 남깁니다.' }
+        ];
+
 
         document.addEventListener('mousemove', (e) => {
             cursor.style.left = e.clientX + 'px'; cursor.style.top = e.clientY + 'px';
@@ -206,6 +763,7 @@
         });
 
         startBtn.addEventListener('click', () => {
+            registerUniverseVisit();
             entryLayer.style.opacity = '0';
             setTimeout(() => {
                 entryLayer.style.display = 'none'; openingLayer.classList.remove('hidden');
@@ -243,18 +801,52 @@
         }
 
         // --- 궤도 시스템 ---
+        function getOrbitLayout(p) {
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const minSide = Math.min(vw, vh);
+            const maxOriginalRadius = Math.max(...planetsData.map(item => item.radius));
+
+            // 데스크탑/랩탑에서는 원본 우주의 넓은 스케일을 유지한다.
+            // 모바일에서만 성좌들이 화면 밖으로 나가지 않도록 궤도를 압축한다.
+            if (vw >= 768) {
+                return { radius: p.radius, size: p.size };
+            }
+
+            const edgePadding = 28;
+            const minRadius = 72;
+            const maxFittableRadius = Math.max(82, (minSide / 2) - edgePadding);
+            const scaledRadius = minRadius + (p.radius / maxOriginalRadius) * Math.max(1, maxFittableRadius - minRadius);
+            const radius = Math.max(64, Math.min(scaledRadius, maxFittableRadius));
+            const size = Math.max(38, Math.round(p.size * 0.88));
+            return { radius, size };
+        }
+
+        function getStrokeGlow(stroke, alpha = 0.26) {
+            return stroke.replace(/rgba\(([^,]+),([^,]+),([^,]+),[^)]+\)/, `rgba($1,$2,$3,${alpha})`);
+        }
+
         function buildOrbitSystem() {
-            orbitSystem.innerHTML = ''; const uniqueRadii = [...new Set(planetsData.map(p => p.radius))];
-            uniqueRadii.forEach(r => {
+            orbitSystem.innerHTML = '';
+            const responsiveRadii = [...new Set(planetsData.map(p => Math.round(getOrbitLayout(p).radius)))];
+            responsiveRadii.forEach(r => {
                 const orbit = document.createElement('div'); orbit.className = 'orbit-line'; orbit.style.width = `${r * 2}px`; orbit.style.height = `${r * 2}px`; orbitSystem.appendChild(orbit);
             });
             planetsData.forEach((p, idx) => {
-                const obj = document.createElement('div'); obj.className = `celestial-obj border border-dashed`; obj.id = `planet-${idx}`;
-                obj.style.width = `${p.size}px`; obj.style.height = `${p.size}px`; obj.style.backgroundColor = p.color; obj.style.borderColor = p.stroke;
-                if(p.type.startsWith('active')) { obj.style.boxShadow = `0 0 12px ${p.stroke.replace('0.4', '0.15')}`; }
-                obj.innerHTML = `<span class="text-[9px] scale-90 tracking-tighter opacity-70 ${p.type === 'inactive' ? 'text-slate-400' : 'text-white'} font-light text-center px-1">${p.name}</span>`;
+                const layout = getOrbitLayout(p);
+                const obj = document.createElement('div'); obj.className = `celestial-obj border ${p.type === 'inactive' ? 'inactive' : 'active'}`; obj.id = `planet-${idx}`;
+                obj.style.width = `${layout.size}px`; obj.style.height = `${layout.size}px`; obj.style.setProperty('--planet-bg', p.color); obj.style.borderColor = p.stroke;
+                if(p.type.startsWith('active')) { obj.style.boxShadow = `0 0 18px ${getStrokeGlow(p.stroke, 0.24)}, inset 0 0 18px rgba(255,255,255,0.06)`; }
+                obj.innerHTML = `<span class="celestial-icon" aria-hidden="true">${p.icon}</span><span class="celestial-name ${p.type === 'inactive' ? 'text-slate-300' : 'text-white'}">${p.shortName || p.name}</span>`;
+                obj.setAttribute('role', 'button');
+                obj.setAttribute('tabindex', '0');
+                obj.setAttribute('aria-label', `${p.name} 열기`);
                 obj.addEventListener('mouseenter', (e) => { playBlipSound(); triggerHologram(e, p, obj); });
-                obj.addEventListener('mouseleave', hideHologram); orbitSystem.appendChild(obj);
+                obj.addEventListener('mouseleave', hideHologram);
+                obj.addEventListener('touchstart', (e) => { playBlipSound(); triggerHologram(e, p, obj); }, { passive: true });
+                obj.addEventListener('click', () => { openPlanetPanel(p); });
+                obj.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlanetPanel(p); } });
+                orbitSystem.appendChild(obj);
             });
         }
 
@@ -262,7 +854,10 @@
             if (!isUniverseActive) return; const centerX = window.innerWidth / 2; const centerY = window.innerHeight / 2;
             planetsData.forEach((p, idx) => {
                 const obj = document.getElementById(`planet-${idx}`); if (!obj) return;
-                angleOffsets[idx] += p.speed; const x = centerX + Math.cos(angleOffsets[idx]) * p.radius - (p.size / 2); const y = centerY + Math.sin(angleOffsets[idx]) * p.radius - (p.size / 2);
+                const layout = getOrbitLayout(p);
+                angleOffsets[idx] += p.speed;
+                const x = centerX + Math.cos(angleOffsets[idx]) * layout.radius - (layout.size / 2);
+                const y = centerY + Math.sin(angleOffsets[idx]) * layout.radius - (layout.size / 2);
                 obj.style.left = `${x}px`; obj.style.top = `${y}px`;
             });
             requestAnimationFrame(animateOrbitSystem);
@@ -286,10 +881,480 @@
         }
         function hideHologram() { cursor.style.width = '6px'; cursor.style.height = '6px'; clearInterval(typeInterval); hologramTooltip.classList.remove('active'); hologramLine.style.display = 'none'; }
 
+
+
+        // --- 👖 성좌 상세 패널: 바지찾아삼만리위성 ---
+        function escapeHTML(value) {
+            return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+        }
+
+        function openPlanetPanel(planet, section = 'shorts') {
+            activePanelPlanet = planet;
+            isPlanetPanelOpen = true;
+            clearTimeout(idleTimer);
+            hideHologram();
+            renderPlanetPanel(planet, section);
+            planetBackdrop.classList.add('active');
+            planetPanel.classList.add('active');
+            planetBackdrop.setAttribute('aria-hidden', 'false');
+            planetPanel.setAttribute('aria-hidden', 'false');
+        }
+
+        function closePlanetPanel() {
+            isPlanetPanelOpen = false;
+            activePanelPlanet = null;
+            planetBackdrop.classList.remove('active');
+            planetPanel.classList.remove('active');
+            planetBackdrop.setAttribute('aria-hidden', 'true');
+            planetPanel.setAttribute('aria-hidden', 'true');
+            if (isUniverseActive && !isIdleTriggered) resetIdleTimer();
+        }
+
+        function renderPlanetPanel(planet, section = 'shorts') {
+            if (planet.name === '하차니아') {
+                renderHachaniaPanel(section);
+                return;
+            }
+
+            if (planet.name === '하찮은 게임위성') {
+                renderGamePanel();
+                return;
+            }
+
+            if (planet.name === '생각많망뇌') {
+                renderThoughtBrainPanel();
+                return;
+            }
+
+            if (planet.name !== '바지찾아삼만리위성') {
+                planetPanelBody.innerHTML = `
+                    <div class="panel-kicker">HACHANIA CONSTELLATION</div>
+                    <h2 class="panel-title">${escapeHTML(planet.icon || '🪐')} ${escapeHTML(planet.name)}</h2>
+                    <p class="panel-desc">${escapeHTML(planet.text)}<br><br>이 성좌는 아직 조용히 빛을 모으는 중입니다. 지금은 바지찾아삼만리위성, 하찮은 게임위성, 생각많망뇌를 먼저 관측해 주세요.</p>
+                `;
+                return;
+            }
+
+            const tabs = [
+                { id: 'shorts', label: '쇼츠' },
+                { id: 'atlas', label: '불편도감' },
+                { id: 'progress', label: '001/050' },
+                { id: 'news', label: '소식받기' }
+            ];
+
+            planetPanelBody.innerHTML = `
+                <div class="panel-kicker">PANTS OBSERVATORY</div>
+                <h2 class="panel-title">👖 바지찾아삼만리위성</h2>
+                <p class="panel-desc">서 있을 땐 멀쩡했던 바지들이, 앉는 순간 본색을 드러내는 곳. 이 불편의 관측 기록이 ㅁ ㅜ ㄹ ㅁ pants 001/050으로 물질화됩니다.</p>
+                <div class="panel-tabs" role="tablist">
+                    ${tabs.map(tab => `<button class="panel-tab ${section === tab.id ? 'active' : ''}" type="button" data-section="${tab.id}">${tab.label}</button>`).join('')}
+                </div>
+                <div class="panel-content">${renderPantsSection(section)}</div>
+            `;
+
+            planetPanelBody.querySelectorAll('.panel-tab').forEach(btn => {
+                btn.addEventListener('click', () => renderPlanetPanel(planet, btn.dataset.section));
+            });
+
+            planetPanelBody.querySelectorAll('.atlas-card').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activePantsAtlasId = btn.dataset.atlasId || activePantsAtlasId;
+                    renderPlanetPanel(planet, 'atlas');
+                });
+            });
+
+            planetPanelBody.querySelectorAll('.atlas-jump').forEach(btn => {
+                btn.addEventListener('click', () => renderPlanetPanel(planet, btn.dataset.section || 'shorts'));
+            });
+
+            const emailButton = planetPanelBody.querySelector('#pants-newsletter-button');
+            if (emailButton) {
+                emailButton.addEventListener('click', savePantsNewsletter);
+            }
+        }
+
+        function renderHachaniaPanel(section = 'featured') {
+            const validSections = ['featured', 'characters', 'channel'];
+            const activeSection = validSections.includes(section) ? section : 'featured';
+            const tabs = [
+                { id: 'featured', label: '대표 쇼츠' },
+                { id: 'characters', label: '캐릭터별' },
+                { id: 'channel', label: '전체 채널' }
+            ];
+
+            planetPanelBody.innerHTML = `
+                <div class="panel-kicker">HACHANIA SHORTS ARCHIVE</div>
+                <h2 class="panel-title">🌺 하차니아</h2>
+                <p class="panel-desc">하찮고 이상하고 조금 진심인 캐릭터들이 사는 중심 성좌. 대표 쇼츠를 보고, 마음에 걸린 캐릭터의 방으로 들어갑니다.</p>
+                <div class="panel-tabs" role="tablist">
+                    ${tabs.map(tab => `<button class="panel-tab ${activeSection === tab.id ? 'active' : ''}" type="button" data-section="${tab.id}">${tab.label}</button>`).join('')}
+                </div>
+                <div class="panel-content">${renderHachaniaSection(activeSection)}</div>
+            `;
+
+            planetPanelBody.querySelectorAll('.panel-tab').forEach(btn => {
+                btn.addEventListener('click', () => renderHachaniaPanel(btn.dataset.section));
+            });
+
+            planetPanelBody.querySelectorAll('[data-hachania-character]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    activeHachaniaCharacterId = btn.dataset.hachaniaCharacter || activeHachaniaCharacterId;
+                    renderHachaniaPanel('characters');
+                });
+            });
+        }
+
+        function renderHachaniaSection(section) {
+            if (section === 'characters') return renderHachaniaCharacters();
+            if (section === 'channel') return renderHachaniaChannel();
+            return renderHachaniaFeatured();
+        }
+
+        function renderHachaniaFeatured() {
+            return `<div class="content-grid">
+                ${hachaniaCharacters.map(character => {
+                    const firstShort = character.shorts[0] || { title: character.representative, copy: character.desc, tag: '입문', link: '' };
+                    const card = `<article class="short-card">
+                        <div class="short-number">${escapeHTML(character.icon)}</div>
+                        <div>
+                            <div class="short-title">${escapeHTML(character.name)} · ${escapeHTML(firstShort.title)}</div>
+                            <div class="short-copy">${escapeHTML(firstShort.copy)}</div>
+                            <div class="short-status">✦ ${escapeHTML(firstShort.tag)} · 대표 쇼츠</div>
+                        </div>
+                    </article>`;
+                    return firstShort.link ? `<a class="short-link" href="${escapeHTML(firstShort.link)}" target="_blank" rel="noopener" data-muum-link="shorts">${card}</a>` : card;
+                }).join('')}
+            </div>`;
+        }
+
+        function renderHachaniaCharacters() {
+            const selected = hachaniaCharacters.find(item => item.id === activeHachaniaCharacterId) || hachaniaCharacters[0];
+            return `
+                <div class="atlas-intro">
+                    <strong>캐릭터별 아카이브</strong><br>
+                    캐릭터를 누르면 대표 쇼츠 후보와 역할이 열립니다. 닥터후우도 이곳에 새로 입주했습니다.
+                </div>
+                <div class="content-grid">
+                    ${hachaniaCharacters.map(character => `<button class="atlas-card ${character.id === selected.id ? 'active' : ''}" type="button" data-hachania-character="${escapeHTML(character.id)}">
+                        <div class="atlas-card-title"><span>${escapeHTML(character.icon)}</span><strong>${escapeHTML(character.name)}</strong></div>
+                        <p>${escapeHTML(character.role)}</p>
+                    </button>`).join('')}
+                </div>
+                <article class="atlas-detail-card">
+                    <div class="atlas-detail-head">
+                        <div class="atlas-detail-title"><span>${escapeHTML(selected.icon)}</span><strong>${escapeHTML(selected.name)}</strong></div>
+                        <div class="atlas-detail-subtitle">${escapeHTML(selected.role)}</div>
+                    </div>
+                    <div class="atlas-detail-body">
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">CHARACTER NOTE</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.desc)}</div>
+                        </div>
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">REPRESENTATIVE</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.representative)}</div>
+                        </div>
+                        ${selected.shorts.map(short => `<div class="atlas-detail-row">
+                            <div class="atlas-detail-label">${escapeHTML(short.tag)}</div>
+                            <div class="atlas-detail-text">${escapeHTML(short.title)} · ${escapeHTML(short.copy)}</div>
+                        </div>`).join('')}
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderHachaniaChannel() {
+            return `<article class="brain-channel-card">
+                <div class="short-title">하차니아 유튜브 채널</div>
+                <p class="short-copy">대표 쇼츠와 캐릭터별 아카이브를 본 뒤, 전체 영상은 하차니아 유튜브 채널에서 이어서 볼 수 있습니다. 채널 주소가 정해지면 아래 버튼이 열립니다.</p>
+                ${hachaniaChannelURL
+                    ? `<a class="brain-channel-button" href="${escapeHTML(hachaniaChannelURL)}" target="_blank" rel="noopener" data-muum-link="channel">하차니아 유튜브로 가기</a>`
+                    : `<button class="brain-channel-button-disabled" type="button" disabled>하차니아 채널 링크 대기</button>`}
+            </article>`;
+        }
+
+        function renderGamePanel() {
+            planetPanelBody.innerHTML = `
+                <div class="panel-kicker">HACHANIA GAME SATELLITE</div>
+                <h2 class="panel-title">🎮 하찮은 게임위성</h2>
+                <p class="panel-desc">하찮지만 손가락은 바빠지는 곳. 싹싹, 엄갱딸기, 낭만사우루스가 각각 다른 게임장으로 열립니다.</p>
+                ${renderGameLobby()}
+            `;
+            checkGameRoutes();
+        }
+
+        function renderGameLobby() {
+            return `
+                <div class="game-intro">
+                    <strong>게임 선택 로비</strong><br>
+                    문을 고르면 각 게임장으로 이동합니다. 아직 준비 중인 문은 조용히 반짝이다가, 게임 파일이 올라오면 자동으로 열립니다.
+                </div>
+                <div class="game-grid">
+                    ${hachaniaGames.map(game => `
+                        <article class="game-card" data-game-id="${escapeHTML(game.id)}">
+                            <div class="game-card-head">
+                                <div class="game-icon">${escapeHTML(game.icon)}</div>
+                                <div>
+                                    <div class="game-title">${escapeHTML(game.title)}</div>
+                                    <div class="game-status">${escapeHTML(game.status)}</div>
+                                </div>
+                            </div>
+                            <p class="game-copy">${escapeHTML(game.subtitle)}</p>
+                            <code class="game-route">${escapeHTML(game.route)}</code>
+                            ${game.ready
+                                ? `<a class="game-button game-action" href="${escapeHTML(game.route)}">게임 시작</a>`
+                                : `<button class="game-button-disabled game-action" type="button" disabled>곧 오픈</button>`}
+                        </article>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        async function checkGameRoutes() {
+            const cards = planetPanelBody.querySelectorAll('[data-game-id]');
+            cards.forEach(async (card) => {
+                const game = hachaniaGames.find(item => item.id === card.dataset.gameId);
+                if (!game) return;
+                try {
+                    const response = await fetch(game.route, { method: 'HEAD', cache: 'no-store' });
+                    if (!response.ok) return;
+                    const status = card.querySelector('.game-status');
+                    const action = card.querySelector('.game-action');
+                    if (status) status.textContent = 'OPEN · 게임 시작 가능';
+                    if (action) {
+                        action.outerHTML = `<a class="game-button game-action" href="${escapeHTML(game.route)}">게임 시작</a>`;
+                    }
+                } catch (error) {
+                    // 아직 게임 폴더가 없으면 그대로 '곧 오픈' 상태로 둡니다.
+                }
+            });
+        }
+
+        function renderThoughtBrainPanel() {
+            planetPanelBody.innerHTML = `
+                <div class="panel-kicker">ANALOG DAILY ORBIT</div>
+                <h2 class="panel-title">🧠 생각많망뇌</h2>
+                <p class="panel-desc">생각이 많아서 망한 뇌를 구원하려는, 아주 작은 칠판식 하루 기록. 계획을 세우고, 못 지킨 나까지 저녁에 조용히 관측합니다.</p>
+                <div class="brain-intro">
+                    <strong>생각이 많아 망한 뇌의 규칙</strong><br>
+                    왼쪽에는 오늘 할 리스트를 전부 적고, 오른쪽에는 오전·오후·저녁 6칸만 남깁니다. 밤에는 끝난 일을 지우고, 남은 일은 내일의 분필가루로 넘깁니다.
+                </div>
+                <section class="brain-board" aria-label="생각많망뇌 칠판 구조">
+                    <div class="brain-board-title">TODAY'S CHALKBOARD</div>
+                    <div class="brain-board-layout">
+                        <div class="brain-left">
+                            <div class="chalk-label">LEFT · 오늘 할 리스트</div>
+                            <div class="chalk-list">
+                                ${thoughtBrainLeftList.map(item => `<span>${escapeHTML(item)}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="brain-right">
+                            <div class="chalk-label">RIGHT · 6칸 실행 구역</div>
+                            <div class="brain-slots">
+                                ${thoughtBrainSlots.map(slot => `<button class="brain-slot" type="button" title="눌러서 지우기 미리보기">
+                                    <span class="brain-slot-time">${escapeHTML(slot.time)}</span>
+                                    <span class="brain-slot-task">${escapeHTML(slot.task)}</span>
+                                </button>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <div class="brain-ritual-grid">
+                    ${thoughtBrainRitual.map(item => `<article class="brain-ritual-card">
+                        <div class="brain-ritual-no">${escapeHTML(item.no)}</div>
+                        <div>
+                            <div class="brain-ritual-title">${escapeHTML(item.title)}</div>
+                            <div class="brain-ritual-copy">${escapeHTML(item.copy)}</div>
+                        </div>
+                    </article>`).join('')}
+                </div>
+                <article class="brain-channel-card">
+                    <div class="short-title">유튜브 채널 · 생각많망뇌</div>
+                    <p class="short-copy">완전히 아날로그로, 칠판과 분필 소리만 남기는 1분 이하의 하루 기록 채널. 링크가 정해지면 아래 버튼이 채널 입구가 됩니다.</p>
+                    ${thoughtBrainChannelURL
+                        ? `<a class="brain-channel-button" href="${escapeHTML(thoughtBrainChannelURL)}" target="_blank" rel="noopener">채널 보러가기</a>`
+                        : `<button class="brain-channel-button-disabled" type="button" disabled>채널 링크 대기</button>`}
+                </article>
+            `;
+
+            planetPanelBody.querySelectorAll('.brain-slot').forEach(slot => {
+                slot.addEventListener('click', () => {
+                    slot.classList.toggle('erased');
+                    playBlipSound();
+                });
+            });
+        }
+
+        function renderPantsSection(section) {
+            if (section === 'atlas') return renderPantsAtlas(activePantsAtlasId);
+            if (section === 'progress') return renderPantsProgress();
+            if (section === 'news') return renderPantsNewsletter();
+            return renderPantsShorts();
+        }
+
+        function renderPantsShorts() {
+            return `<div class="content-grid">
+                ${pantsShorts.map(item => {
+                    const card = `<article class="short-card">
+                        <div class="short-number">${escapeHTML(item.no)}</div>
+                        <div>
+                            <div class="short-title">${escapeHTML(item.title)}</div>
+                            <div class="short-copy">${escapeHTML(item.copy)}</div>
+                            <div class="short-status">✦ ${escapeHTML(item.status)}</div>
+                        </div>
+                    </article>`;
+                    return item.link ? `<a class="short-link" href="${escapeHTML(item.link)}" target="_blank" rel="noopener" data-muum-link="shorts">${card}</a>` : card;
+                }).join('')}
+            </div>`;
+        }
+
+        function renderPantsAtlas(selectedId = 'pressure') {
+            const selected = pantsAtlas.find(item => item.id === selectedId) || pantsAtlas[0];
+            return `
+                <div class="atlas-intro">
+                    <strong>나의 바지는 어떤 방식으로 나를 배신하는가.</strong><br>
+                    유형을 누르면 증상, 관련 쇼츠, 001/050에서 해결하려는 개발 포인트가 열립니다.
+                </div>
+                <div class="content-grid">
+                    ${pantsAtlas.map(item => `<button class="atlas-card ${item.id === selected.id ? 'active' : ''}" type="button" data-atlas-id="${escapeHTML(item.id)}">
+                        <div class="atlas-card-title"><span>${escapeHTML(item.icon)}</span><strong>${escapeHTML(item.title)}</strong></div>
+                        <p>${escapeHTML(item.subtitle)}</p>
+                    </button>`).join('')}
+                </div>
+                <article class="atlas-detail-card">
+                    <div class="atlas-detail-head">
+                        <div class="atlas-detail-title"><span>${escapeHTML(selected.icon)}</span><strong>${escapeHTML(selected.title)}</strong></div>
+                        <div class="atlas-detail-subtitle">${escapeHTML(selected.subtitle)}</div>
+                    </div>
+                    <div class="atlas-detail-body">
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">SYMPTOM</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.symptom)}</div>
+                        </div>
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">HACHANIA NOTE</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.joke)}</div>
+                        </div>
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">NEEDED PANTS</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.need)}</div>
+                        </div>
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">RELATED SHORTS</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.shortNo)} · ${escapeHTML(selected.shortTitle)}</div>
+                        </div>
+                        <div class="atlas-detail-row">
+                            <div class="atlas-detail-label">001/050 BUILD POINT</div>
+                            <div class="atlas-detail-text">${escapeHTML(selected.buildPoint)}</div>
+                        </div>
+                        <div class="atlas-actions">
+                            <button class="atlas-jump" type="button" data-section="shorts">관련 쇼츠 보기</button>
+                            <button class="atlas-jump" type="button" data-section="progress">001/050 진행 보기</button>
+                        </div>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderPantsProgress() {
+            return `<article class="progress-card">
+                <div class="short-title">ㅁ ㅜ ㄹ ㅁ pants 001/050</div>
+                <p class="short-copy">현재 상태: 샘플 기획과 착용 불편 관측을 연결하는 중. 완성품보다 먼저, 불편의 언어를 정리합니다.</p>
+                <div class="progress-list">
+                    ${pantsProgress.map(item => `<div class="progress-row">
+                        <span class="progress-dot"></span>
+                        <span>${escapeHTML(item.task)}</span>
+                        <span class="progress-tag ${item.tag === '대기' ? 'wait' : ''}">${escapeHTML(item.tag)}</span>
+                    </div>`).join('')}
+                </div>
+            </article>`;
+        }
+
+        function renderPantsNewsletter() {
+            const saved = localStorage.getItem('muum_pants_email');
+            return `<article class="newsletter-card">
+                <div class="short-title">첫 번째 50벌이 지구에 도착하면 알려드릴게요.</div>
+                <p class="short-copy">아직 결제도, 쇼핑몰도 아닙니다. 바지가 태어나는 과정을 관측하는 작은 알림입니다.</p>
+                <input id="pants-newsletter-email" class="newsletter-input" type="email" inputmode="email" placeholder="이메일을 입력하세요" value="${saved ? escapeHTML(saved) : ''}">
+                <button id="pants-newsletter-button" class="newsletter-button" type="button">바지의 탄생을 관측하기</button>
+                <div id="pants-newsletter-note" class="newsletter-note">${saved ? '이미 관측자 명단에 조용히 기록되어 있어요.' : ''}</div>
+            </article>`;
+        }
+
+        function savePantsNewsletter() {
+            const input = document.getElementById('pants-newsletter-email');
+            const note = document.getElementById('pants-newsletter-note');
+            const email = (input.value || '').trim();
+            if (!email || !email.includes('@')) {
+                note.textContent = '이메일 모양이 조금 수상해요. @가 들어간 주소로 다시 적어주세요.';
+                return;
+            }
+            localStorage.setItem('muum_pants_email', email);
+            note.textContent = '기록 완료. 001/050의 첫 신호가 오면 이곳에서 다시 반짝일 거예요.';
+            playChimeSound();
+        }
+
+        planetBackdrop.addEventListener('click', closePlanetPanel);
+        planetPanelClose.addEventListener('click', closePlanetPanel);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && isPlanetPanelOpen) closePlanetPanel();
+        });
+
         // --- ⏳ 4초 머묾 엔진 ---
-        function resetIdleTimer() { if (isIdleTriggered) return; clearTimeout(idleTimer); idleTimer = setTimeout(triggerIdleState, 4000); }
+        function getStorageNumber(key, fallback = 0) {
+            const value = Number(localStorage.getItem(key));
+            return Number.isFinite(value) ? value : fallback;
+        }
+
+        function setStorageNumber(key, value) {
+            localStorage.setItem(key, String(value));
+        }
+
+        function registerUniverseVisit() {
+            if (visitRegisteredThisPage) return;
+            visitRegisteredThisPage = true;
+            setStorageNumber('muum_visit_count', getStorageNumber('muum_visit_count') + 1);
+        }
+
+        function registerGalaxyAction(kind = 'touch') {
+            setStorageNumber('muum_galaxy_action_count', getStorageNumber('muum_galaxy_action_count') + 1);
+            localStorage.setItem('muum_last_action', kind);
+        }
+
+        function suspendIdleFor(ms = 120000) {
+            externalLinkGuardUntil = Date.now() + ms;
+            clearTimeout(idleTimer);
+        }
+
+        function isIdleSuppressed() {
+            return isIdleTriggered || isPlanetPanelOpen || isSubGalaxyOpen || document.hidden || Date.now() < externalLinkGuardUntil;
+        }
+
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            if (!isUniverseActive || isIdleSuppressed()) return;
+            idleTimer = setTimeout(triggerIdleState, 4000);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearTimeout(idleTimer);
+            } else if (isUniverseActive && !isIdleTriggered) {
+                suspendIdleFor(2500);
+                setTimeout(resetIdleTimer, 2600);
+            }
+        });
+
+        document.addEventListener('click', (event) => {
+            const externalLink = event.target.closest && event.target.closest('a[target="_blank"], a[href^="http"]');
+            if (externalLink) {
+                registerGalaxyAction('external-link');
+                suspendIdleFor(180000);
+            }
+        }, true);
 
         function triggerIdleState() {
+            if (isIdleSuppressed()) return;
             isIdleTriggered = true; playChimeSound();
             
             const savedStarName = localStorage.getItem('muum_star_name');
@@ -312,11 +1377,13 @@
         saveStarBtn.addEventListener('click', () => {
             const starName = starNameInput.value.trim() || '무명의 안식별';
             localStorage.setItem('muum_star_name', starName);
+            registerGalaxyAction('create-star');
             enterSubGalaxy(starName);
         });
 
         document.getElementById('enter-star-btn').addEventListener('click', () => {
             const savedStarName = localStorage.getItem('muum_star_name') || '무명의 안식별';
+            registerGalaxyAction('enter-galaxy');
             enterSubGalaxy(savedStarName);
         });
 
@@ -326,14 +1393,88 @@
         });
 
         function enterSubGalaxy(name) {
+            clearTimeout(idleTimer);
+            isSubGalaxyOpen = true;
             idleOverlay.style.opacity = '0'; idleOverlay.classList.add('pointer-events-none');
             namedGalaxyTitle.textContent = `🪐 ${name} 은하계`;
             subGalaxyLayer.classList.remove('pointer-events-none'); subGalaxyLayer.style.opacity = '1';
             initSubGalaxyCanvas();
+            updateGrowthStarState();
         }
 
+        function getGrowthScore() {
+            return getStorageNumber('muum_visit_count') + getStorageNumber('muum_galaxy_action_count');
+        }
+
+        function updateGrowthStarState() {
+            const score = getGrowthScore();
+            const touches = getStorageNumber('muum_growth_star_touches');
+            const savedNote = localStorage.getItem('muum_private_star_note') || '';
+            growthStar.classList.add('visible');
+            growthStar.classList.remove('awake', 'sparked');
+            galaxyNoteCard.classList.remove('active');
+            galaxyNoteCard.setAttribute('aria-hidden', 'true');
+            galaxyNoteInput.value = savedNote;
+            galaxyNoteSaved.textContent = savedNote ? '지난번 한마디가 별 안에 접혀 있어요.' : '';
+
+            if (score >= 10 || touches > 0) {
+                growthStar.classList.add('awake');
+                galaxyStatusCard.innerHTML = `당신의 별이 꿈틀거리고 있어요.<br>가만히 쓰다듬으면 잠깐 반짝입니다. <span style="color:rgba(250,204,21,.8)">${score}/10</span>`;
+            } else {
+                galaxyStatusCard.innerHTML = `아직 활성화되지 않은 별들이 천천히 움직이고 있어요.<br>방문과 관측이 쌓이면 작은 별 하나가 깨어납니다. <span style="color:rgba(125,211,252,.78)">${score}/10</span>`;
+            }
+        }
+
+        function petGrowthStar() {
+            registerGalaxyAction('pet-star');
+            const touches = getStorageNumber('muum_growth_star_touches') + 1;
+            setStorageNumber('muum_growth_star_touches', touches);
+            growthStar.classList.add('sparked', 'awake');
+            playChimeSound();
+            setTimeout(() => growthStar.classList.remove('sparked'), 950);
+            galaxyStatusCard.innerHTML = `별이 잠깐 반짝였어요.<br>아무도 못 보는 한마디를 별 안에 접어둘 수 있습니다.`;
+            openGalaxyNoteCard();
+        }
+
+        function openGalaxyNoteCard() {
+            galaxyNoteCard.classList.add('active');
+            galaxyNoteCard.setAttribute('aria-hidden', 'false');
+            setTimeout(() => galaxyNoteInput.focus(), 120);
+        }
+
+        function closeGalaxyNoteCard() {
+            galaxyNoteCard.classList.remove('active');
+            galaxyNoteCard.setAttribute('aria-hidden', 'true');
+        }
+
+        growthStar.addEventListener('click', petGrowthStar);
+        growthStar.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                petGrowthStar();
+            }
+        });
+        galaxyNoteSave.addEventListener('click', () => {
+            const note = galaxyNoteInput.value.trim();
+            if (note) {
+                localStorage.setItem('muum_private_star_note', note);
+                galaxyNoteSaved.textContent = '저장 완료. 이 말은 이 브라우저의 별 안에만 남아요.';
+                registerGalaxyAction('save-note');
+                playBlipSound();
+            } else {
+                localStorage.removeItem('muum_private_star_note');
+                galaxyNoteSaved.textContent = '비웠어요. 별이 잠깐 조용해졌습니다.';
+            }
+            updateGrowthStarState();
+            openGalaxyNoteCard();
+        });
+        galaxyNoteClose.addEventListener('click', closeGalaxyNoteCard);
+
         exitGalaxyBtn.addEventListener('click', () => {
+            isSubGalaxyOpen = false;
             subGalaxyLayer.style.opacity = '0'; subGalaxyLayer.classList.add('pointer-events-none');
+            growthStar.classList.remove('visible', 'awake', 'sparked');
+            closeGalaxyNoteCard();
             starNameInput.value = ''; isIdleTriggered = false; resetIdleTimer();
         });
 
@@ -346,7 +1487,7 @@
             stars.forEach(star => { star.alpha += star.speed; if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed; ctx.globalAlpha = Math.max(0, star.alpha); ctx.beginPath(); ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2); ctx.fill(); });
             ctx.globalAlpha = 1.0; requestAnimationFrame(animateStars);
         }
-        window.addEventListener('resize', resizeCanvas); resizeCanvas(); animateStars();
+        window.addEventListener('resize', () => { resizeCanvas(); if (isUniverseActive) buildOrbitSystem(); }); resizeCanvas(); animateStars();
 
         // --- 서브 갤럭시 코어 ---
         const subCanvas = document.getElementById('sub-galaxy-canvas'); const subCtx = subCanvas.getContext('2d'); let subStars = []; let subAnimationId;
