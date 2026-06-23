@@ -1,1 +1,2825 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>싹싹+ 플레이 영역 수정 버전</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
 
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #03040a;
+      color: #fff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Courier New", monospace;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #game {
+      position: relative;
+      width: 100vw;
+      max-width: 420px;
+      height: 100vh;
+      max-height: 800px;
+      background: radial-gradient(circle at 50% 20%, #121a36 0%, #070914 48%, #03040a 100%);
+      border: 3px solid #303449;
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.12), inset 0 0 40px rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      cursor: crosshair;
+    }
+
+    .hud {
+      position: absolute;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    #topHud {
+      top: 0;
+      padding: 12px 12px 8px;
+      background: linear-gradient(to bottom, rgba(4,5,12,0.93), rgba(4,5,12,0));
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .pill {
+      min-width: 0;
+      padding: 5px 7px;
+      border: 1px solid rgba(143, 154, 188, 0.32);
+      background: rgba(13, 17, 34, 0.58);
+      color: #d9e5ff;
+      border-radius: 999px;
+      font-size: 10.5px;
+      letter-spacing: -0.35px;
+      white-space: nowrap;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+    }
+
+    #stageName {
+      flex: 1;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #subHint {
+      margin-top: 8px;
+      text-align: center;
+      color: #aeb7d6;
+      font-size: 12px;
+      line-height: 1.35;
+      letter-spacing: -0.35px;
+      opacity: 0.95;
+      word-break: keep-all;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+
+    #bottomHud {
+      bottom: 0;
+      padding: 10px 12px 14px;
+      background: linear-gradient(to top, rgba(4,5,12,0.95), rgba(4,5,12,0));
+      pointer-events: auto;
+    }
+
+    .miniStats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 7px;
+      pointer-events: none;
+    }
+
+    .miniBox {
+      border: 1px solid rgba(143, 154, 188, 0.26);
+      background: rgba(255,255,255,0.045);
+      color: #cbd6f5;
+      border-radius: 10px;
+      padding: 6px 8px;
+      font-size: 10px;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .gaugeWrap {
+      margin-bottom: 9px;
+    }
+
+    .gaugeLabel {
+      display: flex;
+      justify-content: space-between;
+      color: #aab3cf;
+      font-size: 10px;
+      margin-bottom: 4px;
+      letter-spacing: 0.5px;
+    }
+
+    .bar {
+      height: 13px;
+      border: 1px solid rgba(143, 154, 188, 0.42);
+      background: rgba(255,255,255,0.04);
+      overflow: hidden;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.55);
+    }
+
+    #detoxFill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #00f3ff, #ff4db8, #ff4b1f);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.55);
+      transition: width 0.08s linear;
+    }
+
+    .tools {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 7px;
+    }
+
+
+    .skillBar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .skillBtn {
+      border: 1px solid rgba(255, 207, 237, 0.34);
+      border-radius: 13px;
+      background: rgba(255, 77, 184, 0.10);
+      color: #ffeaf7;
+      padding: 10px 7px;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: -0.25px;
+      box-shadow: 0 0 12px rgba(255, 77, 184, 0.10);
+    }
+
+    .skillBtn.ready {
+      border-color: #ffcfed;
+      background: linear-gradient(90deg, rgba(0,243,255,0.13), rgba(255,77,184,0.16));
+      box-shadow: 0 0 16px rgba(0, 243, 255, 0.12);
+    }
+
+    .skillBtn.cooldown {
+      opacity: 0.55;
+      filter: grayscale(0.25);
+    }
+
+    .skillBtn small {
+      display: block;
+      margin-top: 3px;
+      color: #b9c3df;
+      font-size: 9px;
+      font-weight: 500;
+      line-height: 1.15;
+    }
+
+    .skillStatus {
+      margin-top: 7px;
+      padding: 7px 9px;
+      border: 1px solid rgba(255, 207, 237, 0.18);
+      border-radius: 11px;
+      background: rgba(255, 77, 184, 0.055);
+      color: #ffd7ef;
+      font-size: 10px;
+      line-height: 1.25;
+      min-height: 28px;
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .toolBtn {
+      border: 1px solid rgba(143, 154, 188, 0.36);
+      border-radius: 12px;
+      background: rgba(10, 14, 30, 0.8);
+      color: #eaf1ff;
+      padding: 10px 5px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.28);
+    }
+
+    .toolBtn small {
+      display: block;
+      margin-top: 3px;
+      font-weight: 400;
+      color: #9ea9cb;
+      font-size: 9px;
+      line-height: 1.2;
+    }
+
+    .toolBtn.active {
+      border-color: #00f3ff;
+      background: rgba(0, 243, 255, 0.13);
+      box-shadow: 0 0 12px rgba(0, 243, 255, 0.2);
+    }
+
+    .toolBtn.locked {
+      opacity: 0.42;
+      filter: grayscale(0.65);
+    }
+
+    .soundBtn {
+      width: 100%;
+      margin-top: 8px;
+      border: 1px solid rgba(143, 154, 188, 0.32);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.055);
+      color: #cdd8f6;
+      padding: 9px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    .soundBtn.on {
+      border-color: rgba(0,243,255,0.72);
+      color: #ffffff;
+      background: rgba(0,243,255,0.12);
+      box-shadow: 0 0 10px rgba(0,243,255,0.16);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+      background: rgba(3, 4, 10, 0.78);
+      backdrop-filter: blur(4px);
+    }
+
+    .panel {
+      width: min(356px, 100%);
+      border: 1px solid rgba(143, 154, 188, 0.36);
+      border-radius: 24px;
+      background: linear-gradient(180deg, rgba(15,20,42,0.94), rgba(7,9,20,0.97));
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55), inset 0 0 30px rgba(255,255,255,0.03);
+      padding: 22px 18px;
+      text-align: center;
+      max-height: calc(100vh - 44px);
+      overflow-y: auto;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 42px;
+      line-height: 1;
+      letter-spacing: -3px;
+      text-shadow: 0 0 18px rgba(0, 243, 255, 0.35);
+    }
+
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      letter-spacing: -1px;
+    }
+
+    .panel p {
+      margin: 12px 0;
+      color: #b8c2de;
+      font-size: 14px;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    .recordBox {
+      margin: 14px 0 6px;
+      padding: 11px 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.045);
+      color: #dce5ff;
+      font-size: 12px;
+      line-height: 1.55;
+      text-align: left;
+    }
+
+    .badgePanel {
+      margin: 10px 0 4px;
+      max-height: 230px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      border-radius: 16px;
+      background: rgba(0, 243, 255, 0.045);
+      text-align: left;
+    }
+
+    .badgePanelTitle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #dce5ff;
+      font-size: 11px;
+      margin-bottom: 8px;
+      letter-spacing: -0.2px;
+    }
+
+    .badgeGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+    }
+
+    .badgeBtn {
+      border: 1px solid rgba(143, 154, 188, 0.22);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.045);
+      color: #aeb7d6;
+      padding: 8px 7px;
+      font-size: 10.5px;
+      line-height: 1.25;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .badgeBtn b {
+      display: block;
+      color: #eaf1ff;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .badgeBtn.equipped {
+      border-color: #00f3ff;
+      background: rgba(0, 243, 255, 0.13);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.14);
+    }
+
+    .badgeBtn.locked {
+      opacity: 0.36;
+      cursor: default;
+      filter: grayscale(0.7);
+    }
+
+    .badgeEffect {
+      color: #92a0c7;
+      font-size: 9.5px;
+    }
+
+    .activeBadgeLine {
+      margin: -1px 0 8px;
+      padding: 7px 9px;
+      border: 1px solid rgba(0, 243, 255, 0.18);
+      border-radius: 11px;
+      background: rgba(0, 243, 255, 0.055);
+      color: #dce5ff;
+      font-size: 10px;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+    }
+
+    .rewardCard {
+      margin: 12px 0;
+      padding: 14px 12px;
+      border: 1px solid rgba(0, 243, 255, 0.35);
+      border-radius: 18px;
+      background: radial-gradient(circle at 50% 0%, rgba(0,243,255,0.22), rgba(255,77,184,0.08) 55%, rgba(255,255,255,0.04));
+      box-shadow: 0 0 18px rgba(0, 243, 255, 0.12);
+    }
+
+    .rewardIcon {
+      font-size: 34px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .rewardName {
+      font-size: 18px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.7px;
+    }
+
+    .rewardEffect {
+      margin-top: 6px;
+      color: #bdefff;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .equipHint {
+      margin-top: 8px;
+      color: #ffcfed;
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+
+    .primaryBtn {
+      width: 100%;
+      margin-top: 14px;
+      border: none;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #00f3ff, #ff4db8);
+      color: #05050d;
+      font-weight: 900;
+      padding: 14px 16px;
+      font-size: 15px;
+      letter-spacing: -0.2px;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.24);
+    }
+
+    .ghostBtn {
+      width: 100%;
+      margin-top: 9px;
+      border: 1px solid rgba(143, 154, 188, 0.32);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      color: #dbe6ff;
+      font-weight: 700;
+      padding: 13px 16px;
+      font-size: 14px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .toast {
+      position: absolute;
+      left: 50%;
+      top: 47%;
+      z-index: 8;
+      transform: translate(-50%, -50%);
+      padding: 10px 14px;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      background: rgba(4,5,12,0.72);
+      color: #fff;
+      font-size: 13px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .spark {
+      color: #00f3ff;
+    }
+
+    @media (max-height: 650px) {
+      .title { font-size: 36px; }
+      .panel { padding: 18px 15px; }
+      .toolBtn { padding: 8px 4px; }
+      .toolBtn small { display: none; }
+      .recordBox { font-size: 11px; padding: 9px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <canvas id="canvas"></canvas>
+
+    <div id="topHud" class="hud hidden">
+      <div class="row">
+        <div id="stagePill" class="pill">STAGE 1</div>
+        <div id="stageName" class="pill">먼지</div>
+        <div id="cleanPill" class="pill">CLEAN 0%</div>
+        <div id="timePill" class="pill">80s</div>
+      </div>
+      <div id="subHint">손가락으로 뿌연 먼지를 슥슥 닦으세요.</div>
+    </div>
+
+    <div id="bottomHud" class="hud hidden">
+      <div class="miniStats">
+        <div id="scoreBox" class="miniBox">SCORE 0</div>
+        <div id="comboBox" class="miniBox">COMBO x0</div>
+      </div>
+      <div id="activeBadgeLine" class="activeBadgeLine">장착 스킬 없음</div>
+      <div class="gaugeWrap">
+        <div class="gaugeLabel">
+          <span>DETOX GAUGE</span>
+          <span id="detoxText">0%</span>
+        </div>
+        <div class="bar"><div id="detoxFill"></div></div>
+      </div>
+      <div class="tools">
+        <button id="fingerBtn" class="toolBtn active">
+          손가락
+          <small>기본 닦기</small>
+        </button>
+        <button id="tissueBtn" class="toolBtn locked">
+          휴지
+          <small>물기/피곤</small>
+        </button>
+        <button id="eraserBtn" class="toolBtn locked">
+          지우개
+          <small>낙서/잔소리</small>
+        </button>
+      </div>
+      <button id="soundBtn" class="soundBtn">🔇 SOUND OFF</button>
+      <div id="skillBar" class="skillBar"></div>
+      <div id="skillStatus" class="skillStatus">장착 스킬를 선택하면 스킬 버튼이 나타납니다.</div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="startOverlay" class="overlay">
+      <div class="panel">
+        <h1 class="title">싹싹+</h1>
+        <p>
+          먼지, 알림, 물기, 낙서, 잔소리, 피곤,<br />
+          직장상사, 화병, 대청소까지 닦아내는 배지 스킬 발동 버전.
+        </p>
+        <div id="recordBox" class="recordBox"></div>
+        <div id="badgePanel" class="badgePanel"></div>
+        <button id="startBtn" class="primaryBtn">오늘의 청소 시작</button>
+        <button id="endlessBtn" class="ghostBtn">엔들리스 청소</button>
+      </div>
+    </div>
+
+    <div id="messageOverlay" class="overlay hidden">
+      <div class="panel">
+        <h2 id="messageTitle">깨끗해졌습니다</h2>
+        <p id="messageBody">CLEAN 90%</p>
+        <button id="messagePrimary" class="primaryBtn">다음 스테이지</button>
+        <button id="messageSecondary" class="ghostBtn hidden">처음부터 다시</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const gameEl = document.getElementById("game");
+
+    const topHud = document.getElementById("topHud");
+    const bottomHud = document.getElementById("bottomHud");
+    const stagePill = document.getElementById("stagePill");
+    const stageNameEl = document.getElementById("stageName");
+    const cleanPill = document.getElementById("cleanPill");
+    const timePill = document.getElementById("timePill");
+    const subHint = document.getElementById("subHint");
+    const detoxFill = document.getElementById("detoxFill");
+    const detoxText = document.getElementById("detoxText");
+    const scoreBox = document.getElementById("scoreBox");
+    const comboBox = document.getElementById("comboBox");
+    const activeBadgeLine = document.getElementById("activeBadgeLine");
+    const fingerBtn = document.getElementById("fingerBtn");
+    const tissueBtn = document.getElementById("tissueBtn");
+    const eraserBtn = document.getElementById("eraserBtn");
+    const soundBtn = document.getElementById("soundBtn");
+    const skillBar = document.getElementById("skillBar");
+    const skillStatus = document.getElementById("skillStatus");
+
+    const startOverlay = document.getElementById("startOverlay");
+    const startBtn = document.getElementById("startBtn");
+    const endlessBtn = document.getElementById("endlessBtn");
+    const recordBox = document.getElementById("recordBox");
+    const badgePanel = document.getElementById("badgePanel");
+    const messageOverlay = document.getElementById("messageOverlay");
+    const messageTitle = document.getElementById("messageTitle");
+    const messageBody = document.getElementById("messageBody");
+    const messagePrimary = document.getElementById("messagePrimary");
+    const messageSecondary = document.getElementById("messageSecondary");
+    const toast = document.getElementById("toast");
+
+    ctx.imageSmoothingEnabled = false;
+
+    // -----------------------------
+    // Tiny Web Audio SFX Engine
+    // 외부 mp3 없이 브라우저에서 효과음을 직접 생성합니다.
+    // 모바일 브라우저는 사용자 터치 후에만 소리 재생이 허용되므로
+    // SOUND 버튼 또는 시작 버튼을 누를 때 AudioContext를 켭니다.
+    // -----------------------------
+    let audioCtx = null;
+    let soundEnabled = false;
+    let lastScrubSound = 0;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+
+    function setSoundEnabled(on) {
+      soundEnabled = on;
+      if (soundEnabled) initAudio();
+      if (soundBtn) {
+        soundBtn.textContent = soundEnabled ? "🔊 SOUND ON" : "🔇 SOUND OFF";
+        soundBtn.classList.toggle("on", soundEnabled);
+      }
+      if (soundEnabled) playSfx("ready");
+    }
+
+    function tone(freq, duration, type = "sine", gain = 0.045, slideTo = null) {
+      if (!soundEnabled || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const osc = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      if (slideTo) {
+        osc.frequency.exponentialRampToValueAtTime(Math.max(20, slideTo), now + duration);
+      }
+
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(gain, now + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      osc.connect(g);
+      g.connect(audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + duration + 0.02);
+    }
+
+    function noise(duration = 0.08, gain = 0.035, filterFreq = 1400) {
+      if (!soundEnabled || !audioCtx) return;
+      const now = audioCtx.currentTime;
+      const bufferSize = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      }
+
+      const src = audioCtx.createBufferSource();
+      const filter = audioCtx.createBiquadFilter();
+      const g = audioCtx.createGain();
+
+      filter.type = "bandpass";
+      filter.frequency.value = filterFreq;
+      filter.Q.value = 0.9;
+
+      g.gain.setValueAtTime(gain, now);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+      src.buffer = buffer;
+      src.connect(filter);
+      filter.connect(g);
+      g.connect(audioCtx.destination);
+      src.start(now);
+      src.stop(now + duration);
+    }
+
+    function playSfx(name) {
+      if (!soundEnabled || !audioCtx) return;
+
+      if (name === "scrub") {
+        const nowMs = performance.now();
+        if (nowMs - lastScrubSound < 55) return;
+        lastScrubSound = nowMs;
+        noise(0.055, 0.018, 1700);
+        return;
+      }
+
+      if (name === "remove") {
+        tone(660, 0.075, "square", 0.035, 990);
+        noise(0.045, 0.012, 2200);
+        return;
+      }
+
+      if (name === "combo") {
+        tone(880, 0.07, "triangle", 0.035, 1320);
+        setTimeout(() => tone(1175, 0.06, "triangle", 0.025, 1480), 55);
+        return;
+      }
+
+      if (name === "clear") {
+        tone(523.25, 0.10, "triangle", 0.04);
+        setTimeout(() => tone(659.25, 0.10, "triangle", 0.04), 90);
+        setTimeout(() => tone(783.99, 0.18, "triangle", 0.045), 180);
+        return;
+      }
+
+      if (name === "fail") {
+        tone(220, 0.16, "sawtooth", 0.035, 130);
+        return;
+      }
+
+      if (name === "detox") {
+        tone(140, 0.32, "sawtooth", 0.045, 520);
+        noise(0.22, 0.04, 900);
+        setTimeout(() => tone(1046, 0.18, "triangle", 0.04), 120);
+        return;
+      }
+
+      if (name === "skill") {
+        tone(392, 0.10, "triangle", 0.045, 784);
+        setTimeout(() => tone(988, 0.18, "triangle", 0.04, 1568), 90);
+        return;
+      }
+
+      if (name === "badge") {
+        tone(784, 0.09, "triangle", 0.04);
+        setTimeout(() => tone(1046, 0.10, "triangle", 0.04), 85);
+        setTimeout(() => tone(1568, 0.20, "triangle", 0.05), 175);
+        return;
+      }
+
+      if (name === "ready") {
+        tone(440, 0.05, "triangle", 0.025, 660);
+        return;
+      }
+
+      if (name === "boss") {
+        tone(160, 0.12, "sawtooth", 0.035, 95);
+        noise(0.08, 0.02, 500);
+        return;
+      }
+
+      if (name === "angerCool") {
+        tone(620, 0.18, "sine", 0.035, 260);
+        noise(0.18, 0.022, 2600);
+        return;
+      }
+    }
+
+
+    let W = 400;
+    let H = 720;
+
+    function fitCanvas() {
+      const rect = gameEl.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      canvas.width = Math.floor(rect.width * dpr);
+      canvas.height = Math.floor(rect.height * dpr);
+      canvas.style.width = rect.width + "px";
+      canvas.style.height = rect.height + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      W = rect.width;
+      H = rect.height;
+    }
+
+    const stages = [
+      {
+        name: "먼지",
+        reward: "먼지 닦개 배지",
+        rewardId: "dust",
+        hint: "먼지는 쉬워 보이지만 양이 많습니다. 넓게 훑으며 콤보를 만들어보세요.",
+        goalType: "clean",
+        goal: 90,
+        time: 85,
+        types: ["dust"],
+        initial: 90,
+        spawnEvery: 72,
+        hpMul: 1.10,
+        fog: 0.58,
+        tissueUnlocked: false,
+        eraserUnlocked: false
+      },
+      {
+        name: "알림",
+        reward: "알림 무음 배지",
+        rewardId: "alarm",
+        hint: "알림은 빠르게 늘어납니다. 방치하면 화면이 바로 시끄러워집니다.",
+        goalType: "count",
+        goal: 90,
+        time: 110,
+        types: ["alarm"],
+        initial: 34,
+        spawnEvery: 17,
+        hpMul: 1.25,
+        fog: 0.24,
+        tissueUnlocked: false,
+        eraserUnlocked: false
+      },
+      {
+        name: "물기",
+        reward: "휴지 마스터 배지",
+        rewardId: "tissue",
+        hint: "휴지가 열렸습니다. 물기는 손가락으로 밀리고 휴지로 닦입니다.",
+        goalType: "clean",
+        goal: 92,
+        time: 135,
+        types: ["water", "stain"],
+        initial: 68,
+        spawnEvery: 56,
+        hpMul: 1.50,
+        fog: 0.32,
+        tissueUnlocked: true,
+        eraserUnlocked: false
+      },
+      {
+        name: "낙서",
+        reward: "낙서 삭제 배지",
+        rewardId: "doodle",
+        hint: "지우개가 열렸습니다. 낙서는 한 번에 사라지지 않고 끊어집니다.",
+        goalType: "clean",
+        goal: 93,
+        time: 160,
+        types: ["doodle", "alarm"],
+        initial: 64,
+        spawnEvery: 54,
+        hpMul: 1.68,
+        fog: 0.27,
+        tissueUnlocked: true,
+        eraserUnlocked: true
+      },
+      {
+        name: "잔소리",
+        reward: "말풍선 정리 배지",
+        rewardId: "nag",
+        hint: "잔소리는 쪼개지고 다시 붙습니다. 지우개로 말풍선을 먼저 줄이세요.",
+        goalType: "count",
+        goal: 118,
+        time: 190,
+        types: ["nag"],
+        initial: 48,
+        spawnEvery: 23,
+        hpMul: 1.86,
+        fog: 0.32,
+        tissueUnlocked: true,
+        eraserUnlocked: true
+      },
+      {
+        name: "피곤",
+        reward: "피곤 걷어내기 배지",
+        rewardId: "tired",
+        hint: "피곤은 화면 아래로 처집니다. 휴지로 묵직하게 걷어내세요.",
+        goalType: "clean",
+        goal: 94,
+        time: 220,
+        types: ["tired", "stain"],
+        initial: 68,
+        spawnEvery: 60,
+        hpMul: 2.08,
+        fog: 0.48,
+        tissueUnlocked: true,
+        eraserUnlocked: true
+      },
+      {
+        name: "직장상사",
+        reward: "퇴근의 빛 배지",
+        rewardId: "boss",
+        hint: "얼굴은 단단하고 말풍선은 빠릅니다. 말풍선을 줄여야 얼굴을 닦을 틈이 납니다.",
+        goalType: "clean",
+        goal: 93,
+        time: 245,
+        types: ["boss", "nag", "doodle"],
+        initial: 44,
+        bossCount: 7,
+        spawnEvery: 40,
+        hpMul: 2.35,
+        fog: 0.36,
+        heat: true,
+        tissueUnlocked: true,
+        eraserUnlocked: true
+      },
+      {
+        name: "화병",
+        reward: "화병 식힘 배지",
+        rewardId: "anger",
+        hint: "빨간 열덩어리가 화면을 달굽니다. 여러 번 문질러 열기를 식히세요.",
+        goalType: "clean",
+        goal: 94,
+        time: 270,
+        types: ["anger", "nag", "tired"],
+        initial: 62,
+        spawnEvery: 42,
+        hpMul: 2.48,
+        fog: 0.34,
+        heat: true,
+        tissueUnlocked: true,
+        eraserUnlocked: true
+      },
+      {
+        name: "대청소",
+        reward: "대청소 완료 왕배지",
+        rewardId: "detox",
+        hint: "마지막은 길고 진한 대청소입니다. DETOX를 여러 번 터뜨려야 끝납니다.",
+        goalType: "clean",
+        goal: 98,
+        time: 330,
+        types: ["dust", "alarm", "water", "doodle", "nag", "tired", "boss", "anger"],
+        initial: 132,
+        bossCount: 5,
+        spawnEvery: 24,
+        hpMul: 2.70,
+        fog: 0.52,
+        heat: true,
+        tissueUnlocked: true,
+        eraserUnlocked: true,
+        final: true
+      }
+    ];
+
+    const endlessStage = {
+      name: "엔들리스",
+      hint: "오염이 계속 쌓입니다. 90개를 넘기면 종료됩니다.",
+      goalType: "endless",
+      goal: 999999,
+      time: 0,
+      types: ["dust", "alarm", "water", "doodle", "nag", "tired", "boss", "anger"],
+      initial: 54,
+      bossCount: 2,
+      spawnEvery: 34,
+      fog: 0.46,
+      heat: true,
+      tissueUnlocked: true,
+      eraserUnlocked: true,
+      endless: true
+    };
+
+    const allTypes = ["dust", "alarm", "water", "doodle", "nag", "tired", "boss", "anger"];
+    const typeLabel = {
+      dust: "먼지",
+      alarm: "알림",
+      water: "물기",
+      doodle: "낙서",
+      nag: "잔소리",
+      tired: "피곤",
+      boss: "상사얼굴",
+      anger: "화병",
+      stain: "얼룩"
+    };
+
+    const BADGES = [
+      {
+        id: "dust",
+        reward: "먼지 닦개 배지",
+        name: "먼지 닦개",
+        icon: "🧹",
+        cooldown: 28,
+        effect: ["5초 손가락 자국 확대", "6초 손가락 자국 확대", "7초 손가락 자국 확대"]
+      },
+      {
+        id: "alarm",
+        reward: "알림 무음 배지",
+        name: "알림 무음",
+        icon: "🔕",
+        cooldown: 32,
+        effect: ["7초 알림 정지", "8초 알림 정지", "9초 알림 정지"]
+      },
+      {
+        id: "tissue",
+        reward: "휴지 마스터 배지",
+        name: "휴지 마스터",
+        icon: "🧻",
+        cooldown: 30,
+        effect: ["광역 휴지 한 번", "넓은 광역 휴지", "초광역 휴지"]
+      },
+      {
+        id: "doodle",
+        reward: "낙서 삭제 배지",
+        name: "낙서 삭제",
+        icon: "✏️",
+        cooldown: 30,
+        effect: ["8초 지우개 과충전", "10초 지우개 과충전", "12초 지우개 과충전"]
+      },
+      {
+        id: "nag",
+        reward: "말풍선 정리 배지",
+        name: "말풍선 정리",
+        icon: "💬",
+        cooldown: 34,
+        effect: ["말풍선 5개 접기", "말풍선 7개 접기", "말풍선 9개 접기"]
+      },
+      {
+        id: "tired",
+        reward: "피곤 걷어내기 배지",
+        name: "피곤 걷기",
+        icon: "💤",
+        cooldown: 34,
+        effect: ["7초 피곤 가벼움", "8초 피곤 가벼움", "10초 피곤 가벼움"]
+      },
+      {
+        id: "boss",
+        reward: "퇴근의 빛 배지",
+        name: "퇴근의 빛",
+        icon: "🌙",
+        cooldown: 40,
+        effect: ["상사 말풍선 삭제+8초 정지", "삭제+10초 정지", "삭제+12초 정지"]
+      },
+      {
+        id: "anger",
+        reward: "화병 식힘 배지",
+        name: "화병 식힘",
+        icon: "🧊",
+        cooldown: 38,
+        effect: ["화병 체력 절반 냉각", "화병 대폭 냉각", "화병 급속 냉각"]
+      },
+      {
+        id: "detox",
+        reward: "대청소 완료 왕배지",
+        name: "대청소 왕",
+        icon: "✨",
+        cooldown: 45,
+        effect: ["DETOX 추가 정화", "강한 추가 정화", "왕급 추가 정화"]
+      }
+    ];
+
+    const BADGE_BY_ID = Object.fromEntries(BADGES.map(b => [b.id, b]));
+
+    const STORAGE_KEY = "ssakssak_active_skill_badges_v1";
+    const state = {
+      mode: "start",
+      stageIndex: 0,
+      endless: false,
+      dirt: [],
+      particles: [],
+      wipedPaths: [],
+      stars: [],
+      selectedTool: "finger",
+      pointerDown: false,
+      pointerX: 0,
+      pointerY: 0,
+      lastX: 0,
+      lastY: 0,
+      cleanPercent: 0,
+      removedCount: 0,
+      totalRemoved: {},
+      initialHp: 1,
+      remainingHp: 1,
+      detox: 0,
+      timeLeft: 0,
+      elapsed: 0,
+      lastTimestamp: 0,
+      spawnTimer: 0,
+      shake: 0,
+      flash: 0,
+      laser: 0,
+      toastTimer: 0,
+      resultCleanSum: 0,
+      score: 0,
+      combo: 0,
+      comboTimer: 0,
+      dailyType: "dust",
+      dailyLabel: "먼지",
+      skillCooldowns: {},
+      skillTimers: {},
+      skillVisual: null,
+      skillVisualTimer: 0,
+      bossSilence: 0,
+      alarmMute: 0,
+      bigFinger: 0,
+      eraserBoost: 0,
+      tiredLift: 0,
+      cooling: 0,
+      _lastSkillRenderTick: -1
+    };
+
+    let stats = loadStats();
+
+    function loadStats() {
+      let data = null;
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) data = JSON.parse(raw);
+      } catch (e) {}
+      if (!data) {
+        data = {
+          bestAvg: 0,
+          bestScore: 0,
+          bestEndless: 0,
+          bestStageStars: Array(stages.length).fill(0),
+          rewards: [],
+          streak: 0,
+          lastPlayed: "",
+          plays: 0
+        };
+      }
+      if (!Array.isArray(data.bestStageStars)) data.bestStageStars = Array(stages.length).fill(0);
+      while (data.bestStageStars.length < stages.length) data.bestStageStars.push(0);
+      if (!Array.isArray(data.rewards)) data.rewards = [];
+      if (!Array.isArray(data.equipped)) data.equipped = [];
+      data.equipped = data.equipped.filter(id => BADGE_BY_ID[id] && data.rewards.includes(BADGE_BY_ID[id].reward)).slice(0, 2);
+      return data;
+    }
+
+    function saveStats() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+    }
+
+    function todayString() {
+      const d = new Date();
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function yesterdayString() {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    }
+
+    function simpleHash(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+      return h;
+    }
+
+    function setDaily() {
+      const dailyPool = ["dust", "alarm", "water", "doodle", "nag", "tired", "boss", "anger"];
+      state.dailyType = dailyPool[simpleHash(todayString()) % dailyPool.length];
+      state.dailyLabel = typeLabel[state.dailyType];
+    }
+
+    function markPlayedToday() {
+      const today = todayString();
+      if (stats.lastPlayed !== today) {
+        stats.streak = stats.lastPlayed === yesterdayString() ? stats.streak + 1 : 1;
+        stats.lastPlayed = today;
+      }
+      stats.plays += 1;
+      saveStats();
+    }
+
+    function renderStartRecords() {
+      setDaily();
+      const stars = stats.bestStageStars.reduce((a, b) => a + b, 0);
+      recordBox.innerHTML = `
+        오늘의 찌꺼기: <b>${state.dailyLabel}</b> <span style="opacity:.7">조금 더 자주 나옴</span><br>
+        연속 청소일: <b>${stats.streak}</b>일 · 총 플레이 <b>${stats.plays}</b>회<br>
+        최고 정화율: <b>${stats.bestAvg}%</b> · 최고 점수 <b>${stats.bestScore}</b><br>
+        스테이지 별: <b>${stars}/${stages.length * 3}</b> · 수집 배지 <b>${stats.rewards.length}/${stages.length}</b><br>
+        장착 스킬: <b>${stats.equipped.length}/2</b> · 엔들리스 최고 <b>${formatTime(stats.bestEndless)}</b><br>획득한 배지는 아래에서 장착하고, 게임 중 스킬 버튼으로 사용합니다.
+      `;
+      renderBadgePanel();
+    }
+
+    function badgeStarLevel(id) {
+      const idx = stages.findIndex(s => s.rewardId === id);
+      if (idx < 0) return 1;
+      return clamp(stats.bestStageStars[idx] || 1, 1, 3);
+    }
+
+    function hasBadge(id) {
+      const b = BADGE_BY_ID[id];
+      return !!b && stats.rewards.includes(b.reward);
+    }
+
+    function isEquipped(id) {
+      return stats.equipped.includes(id);
+    }
+
+    function badgeFactor(id, values) {
+      if (!isEquipped(id)) return 0;
+      const level = badgeStarLevel(id);
+      return values[level - 1] || values[0] || 0;
+    }
+
+    function renderBadgePanel() {
+      const equippedText = stats.equipped.map(id => BADGE_BY_ID[id]?.name).filter(Boolean).join(", ") || "없음";
+      badgePanel.innerHTML = `
+        <div class="badgePanelTitle">
+          <span>장착 스킬 <b>${stats.equipped.length}/2</b></span>
+          <span style="opacity:.72">${equippedText}</span>
+        </div>
+        <div class="badgeGrid">
+          ${BADGES.map(b => {
+            const owned = hasBadge(b.id);
+            const level = owned ? badgeStarLevel(b.id) : 0;
+            const equipped = isEquipped(b.id);
+            const source = stages.find(s => s.rewardId === b.id)?.name || "스테이지";
+            const effect = owned ? b.effect[level - 1] : `${source} 클리어로 획득`;
+            return `
+              <button class="badgeBtn ${owned ? "" : "locked"} ${equipped ? "equipped" : ""}" data-badge="${b.id}">
+                <b>${b.name} ${owned ? "★".repeat(level) : "🔒"}</b>
+                <span class="badgeEffect">${equipped ? "장착중 · 스킬: " : ""}${effect}</span>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      `;
+
+      badgePanel.querySelectorAll(".badgeBtn").forEach(btn => {
+        btn.addEventListener("click", () => toggleBadge(btn.dataset.badge));
+      });
+    }
+
+
+    function badgeEffectLabel(id) {
+      const b = BADGE_BY_ID[id];
+      if (!b) return "";
+      const level = badgeStarLevel(id);
+      return `${b.name}★${level}: ${b.effect[level - 1]}`;
+    }
+
+    function equippedEffectText() {
+      if (!stats.equipped.length) return "장착 스킬 없음";
+      return "ACTIVE · " + stats.equipped.map(badgeEffectLabel).join(" / ");
+    }
+
+    function toggleBadge(id) {
+      if (!hasBadge(id)) {
+        showToast("아직 획득하지 않은 배지입니다.");
+        return;
+      }
+      if (isEquipped(id)) {
+        stats.equipped = stats.equipped.filter(x => x !== id);
+      } else {
+        if (stats.equipped.length >= 2) {
+          showToast("배지는 최대 2개까지 장착됩니다.");
+          return;
+        }
+        stats.equipped.push(id);
+        showToast("장착: " + badgeEffectLabel(id));
+      }
+      saveStats();
+      renderStartRecords();
+    }
+
+
+    function skillDuration(id) {
+      const lv = badgeStarLevel(id);
+      const map = {
+        dust: [5, 6, 7],
+        alarm: [7, 8, 9],
+        doodle: [8, 10, 12],
+        tired: [7, 8, 10],
+        boss: [8, 10, 12]
+      };
+      return (map[id] && map[id][lv - 1]) || 6;
+    }
+
+    function skillAmount(id) {
+      const lv = badgeStarLevel(id);
+      const map = {
+        nag: [5, 7, 9],
+        tissue: [0.32, 0.43, 0.55],
+        anger: [0.50, 0.62, 0.75],
+        detox: [0.18, 0.26, 0.35]
+      };
+      return (map[id] && map[id][lv - 1]) || 1;
+    }
+
+    function resetSkillsForStage() {
+      state.skillCooldowns = {};
+      state.skillTimers = {};
+      state.bossSilence = 0;
+      state.alarmMute = 0;
+      state.bigFinger = 0;
+      state.eraserBoost = 0;
+      state.tiredLift = 0;
+      state.cooling = 0;
+      state.skillVisual = null;
+      state.skillVisualTimer = 0;
+      stats.equipped.forEach(id => {
+        state.skillCooldowns[id] = 0;
+      });
+      renderSkillBar();
+    }
+
+    function renderSkillBar() {
+      if (!skillBar) return;
+      if (!stats.equipped.length) {
+        skillBar.innerHTML = "";
+        skillStatus.textContent = "장착 배지가 없습니다. 시작 화면에서 배지를 장착하세요.";
+        return;
+      }
+      skillBar.innerHTML = stats.equipped.map(id => {
+        const b = BADGE_BY_ID[id];
+        const cd = Math.ceil(state.skillCooldowns[id] || 0);
+        const ready = cd <= 0;
+        const level = badgeStarLevel(id);
+        return `
+          <button class="skillBtn ${ready ? "ready" : "cooldown"}" data-skill="${id}">
+            ${b.icon || "✦"} ${b.name}★${level}
+            <small>${ready ? "READY · 누르면 발동" : cd + "초 후 사용"}</small>
+          </button>
+        `;
+      }).join("");
+      skillBar.querySelectorAll(".skillBtn").forEach(btn => {
+        btn.addEventListener("pointerdown", (e) => {
+          e.preventDefault();
+          activateSkill(btn.dataset.skill);
+        });
+      });
+      const activeNames = [];
+      if (state.alarmMute > 0) activeNames.push("알림 무음");
+      if (state.bossSilence > 0) activeNames.push("퇴근의 빛");
+      if (state.bigFinger > 0) activeNames.push("먼지 닦개");
+      if (state.eraserBoost > 0) activeNames.push("낙서 삭제");
+      if (state.tiredLift > 0) activeNames.push("피곤 걷기");
+      if (state.cooling > 0) activeNames.push("화병 식힘");
+      skillStatus.textContent = activeNames.length ? "발동중 · " + activeNames.join(" / ") : "장착 스킬 READY 버튼을 눌러 사용하세요.";
+    }
+
+    function activateSkill(id) {
+      playSfx("skill");
+      if (state.mode !== "playing") return;
+      if (!isEquipped(id)) {
+        showToast("장착하지 않은 스킬입니다.");
+        return;
+      }
+      if ((state.skillCooldowns[id] || 0) > 0) {
+        showToast("아직 재사용 대기중입니다.");
+        return;
+      }
+
+      const b = BADGE_BY_ID[id];
+      const lv = badgeStarLevel(id);
+      state.skillCooldowns[id] = b.cooldown || 30;
+      state.skillVisual = id;
+      state.skillVisualTimer = 1.4;
+      state.flash = Math.max(state.flash, 0.18);
+      state.shake = Math.max(state.shake, 12);
+
+      if (id === "dust") {
+        state.bigFinger = skillDuration(id);
+        showToast("🧹 먼지 닦개 발동!");
+      }
+
+      if (id === "alarm") {
+        state.alarmMute = skillDuration(id);
+        state.dirt.forEach(d => {
+          if (d.type === "alarm") {
+            d.vx = 0;
+            d.vy = 0;
+            d.text = "...";
+          }
+        });
+        showToast("🔕 알림 무음!");
+      }
+
+      if (id === "tissue") {
+        const ratio = skillAmount(id);
+        const removeLimit = Math.max(6, Math.ceil(state.dirt.length * ratio));
+        removeByTypes(["water", "stain", "tired", "dust"], removeLimit, "tissue");
+        showToast("🧻 광역 휴지 촥!");
+      }
+
+      if (id === "doodle") {
+        state.eraserBoost = skillDuration(id);
+        showToast("✏️ 지우개 과충전!");
+      }
+
+      if (id === "nag") {
+        const amount = skillAmount(id);
+        removeByTypes(["nag"], amount, "nag");
+        showToast("💬 말풍선 접기!");
+      }
+
+      if (id === "tired") {
+        state.tiredLift = skillDuration(id);
+        state.dirt.forEach(d => {
+          if (d.type === "tired") {
+            d.hp *= 0.72;
+            createBurst(d.x, d.y, d.type, 10);
+          }
+        });
+        showToast("💤 피곤이 가벼워짐!");
+      }
+
+      if (id === "boss") {
+        state.bossSilence = skillDuration(id);
+        removeByTypes(["nag"], 999, "boss");
+        state.dirt.forEach(d => {
+          if (d.type === "boss") {
+            d.mood = "퇴근";
+            d.vx *= 0.15;
+            d.vy *= 0.15;
+          }
+        });
+        showToast("🌙 퇴근의 빛!");
+      }
+
+      if (id === "anger") {
+        const cut = skillAmount(id);
+        state.cooling = 5;
+        state.dirt.forEach(d => {
+          if (d.type === "anger") {
+            d.hp *= (1 - cut);
+            createBurst(d.x, d.y, d.type, 16);
+          }
+        });
+        showToast("🧊 화병 식힘!");
+      }
+
+      if (id === "detox") {
+        triggerDetox(skillAmount(id));
+        showToast("✨ 왕급 대청소!");
+      }
+
+      updateCleanPercent();
+      renderSkillBar();
+    }
+
+    function removeByTypes(types, limit, reason) {
+      let removed = 0;
+      for (let i = state.dirt.length - 1; i >= 0 && removed < limit; i--) {
+        const d = state.dirt[i];
+        if (types.includes(d.type)) {
+          createBurst(d.x, d.y, d.type, reason === "boss" ? 16 : 10);
+          state.totalRemoved[d.type] = (state.totalRemoved[d.type] || 0) + 1;
+          state.removedCount++;
+          state.score += Math.round(10 + d.value * 3);
+          state.dirt.splice(i, 1);
+          removed++;
+        }
+      }
+    }
+
+    function rnd(min, max) {
+      return min + Math.random() * (max - min);
+    }
+
+    function clamp(v, min, max) {
+      return Math.max(min, Math.min(max, v));
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function currentStage() {
+      return state.endless ? endlessStage : stages[state.stageIndex];
+    }
+
+    function makeStars() {
+      state.stars = [];
+      for (let i = 0; i < 65; i++) {
+        state.stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          s: Math.random() > 0.84 ? 2 : 1,
+          sp: rnd(0.10, 0.44),
+          a: rnd(0.22, 0.9)
+        });
+      }
+    }
+
+    function playAreaY() {
+      // 중요: 하단 버튼/HUD 아래에는 오염이 생기면 안 됩니다.
+      // 이전 버그는 canvas가 버튼 뒤까지 깔려 있어서, 버튼 아래 먼지도 CLEAN 계산에 포함된 것입니다.
+      const top = 82;
+      let hudTop = H - 285;
+
+      if (bottomHud && !bottomHud.classList.contains("hidden")) {
+        const gameRect = gameEl.getBoundingClientRect();
+        const hudRect = bottomHud.getBoundingClientRect();
+        hudTop = hudRect.top - gameRect.top;
+      }
+
+      const bottom = clamp(hudTop - 18, top + 120, H - 210);
+      return { top, bottom };
+    }
+
+    function keepInPlayArea(d) {
+      const area = playAreaY();
+      const pad = (d.r || 12) + 8;
+      d.x = clamp(d.x, pad, W - pad);
+      d.y = clamp(d.y, area.top + pad, area.bottom - pad);
+    }
+
+    function canDrawDirt(d) {
+      const area = playAreaY();
+      const r = d.r || 16;
+      return d.y >= area.top - r && d.y <= area.bottom + r;
+    }
+
+    function makeDirt(type, xOverride, yOverride) {
+      const area = playAreaY();
+      const x = xOverride ?? rnd(24, W - 24);
+      const y = yOverride ?? rnd(area.top, Math.max(area.top + 20, area.bottom));
+      const base = { type, x, y, vx: 0, vy: 0, blink: Math.random() * 100, removed: false };
+
+      if (type === "dust") {
+        return { ...base, r: rnd(5, 11), hp: 1, maxHp: 1, value: 1 };
+      }
+
+      if (type === "stain") {
+        const hp = Math.random() > 0.45 ? 3 : 2;
+        return { ...base, r: rnd(17, 32), hp, maxHp: hp, value: hp };
+      }
+
+      if (type === "alarm") {
+        return {
+          ...base, r: rnd(16, 23), w: rnd(42, 64), h: rnd(25, 34), hp: 1, maxHp: 1, value: 1,
+          text: pick(["!", "!!", "999+", "NEW", "톡", "PING"]),
+          vx: rnd(-0.24, 0.24), vy: rnd(-0.18, 0.18)
+        };
+      }
+
+      if (type === "nag") {
+        return {
+          ...base, r: rnd(18, 28), w: rnd(48, 80), h: rnd(25, 38), hp: 1.45, maxHp: 1.45, value: 1.45,
+          text: pick(["했어?", "언제?", "왜?", "또?", "빨리", "조심", "수정"]),
+          vx: rnd(-0.13, 0.13), vy: rnd(-0.11, 0.11),
+          split: Math.random() > 0.50
+        };
+      }
+
+      if (type === "tired") {
+        const hp = Math.random() > 0.35 ? 4.4 : 3.4;
+        return {
+          ...base, r: rnd(22, 40), hp, maxHp: hp, value: hp,
+          vx: rnd(-0.05, 0.05), vy: rnd(0.02, 0.12), sag: rnd(0.75, 1.42)
+        };
+      }
+
+      if (type === "doodle") {
+        const hp = Math.random() > 0.4 ? 3.2 : 2.2;
+        const points = [];
+        let px = 0, py = 0;
+        for (let i = 0; i < 7; i++) {
+          px += rnd(-15, 15);
+          py += rnd(-11, 11);
+          points.push({ x: px, y: py });
+        }
+        return {
+          ...base, r: rnd(24, 38), hp, maxHp: hp, value: hp,
+          points, color: pick(["#dff8ff", "#ff4db8", "#fff2bf", "#b7fffd"])
+        };
+      }
+
+      if (type === "water") {
+        return {
+          ...base, r: rnd(13, 26), hp: 2.3, maxHp: 2.3, value: 2.3,
+          vx: rnd(-0.08, 0.08), vy: rnd(0.03, 0.18), stretch: rnd(1.1, 1.85)
+        };
+      }
+
+      if (type === "anger") {
+        const hp = Math.random() > 0.35 ? 5.0 : 3.9;
+        return {
+          ...base,
+          r: rnd(20, 34),
+          hp,
+          maxHp: hp,
+          value: hp,
+          vx: rnd(-0.15, 0.15),
+          vy: rnd(-0.13, 0.13),
+          pulse: rnd(0, 6.28)
+        };
+      }
+
+      if (type === "boss") {
+        return {
+          ...base,
+          r: rnd(27, 38),
+          hp: 8.2,
+          maxHp: 8.2,
+          value: 8.2,
+          w: rnd(58, 76),
+          h: rnd(58, 76),
+          vx: rnd(-0.12, 0.12),
+          vy: rnd(-0.08, 0.08),
+          mood: pick(["ASAP", "회의?", "다시", "보고", "수정"]),
+          spawnTick: 0
+        };
+      }
+
+      return { ...base, r: 10, hp: 1, maxHp: 1, value: 1 };
+    }
+
+    function applyStageDifficulty(d) {
+      const st = currentStage ? currentStage() : null;
+      const mul = st && st.hpMul ? st.hpMul : 1;
+      if (mul !== 1 && !d.scaled) {
+        d.hp *= mul;
+        d.maxHp *= mul;
+        d.value *= mul;
+        d.scaled = true;
+      }
+      return d;
+    }
+
+    function startGame() {
+      startOverlay.classList.add("hidden");
+      topHud.classList.remove("hidden");
+      bottomHud.classList.remove("hidden");
+      resetTotals();
+      stats.equipped = stats.equipped.filter(id => hasBadge(id)).slice(0, 2);
+      saveStats();
+      markPlayedToday();
+      makeStars();
+      state.endless = false;
+      startStage(0);
+    }
+
+    function startEndless() {
+      startOverlay.classList.add("hidden");
+      topHud.classList.remove("hidden");
+      bottomHud.classList.remove("hidden");
+      resetTotals();
+      stats.equipped = stats.equipped.filter(id => hasBadge(id)).slice(0, 2);
+      saveStats();
+      markPlayedToday();
+      makeStars();
+      state.endless = true;
+      state.stageIndex = 0;
+      startStage(0, true);
+    }
+
+    function resetTotals() {
+      state.totalRemoved = {};
+      for (const t of allTypes.concat(["stain"])) state.totalRemoved[t] = 0;
+      state.resultCleanSum = 0;
+      state.score = 0;
+      state.combo = 0;
+      state.comboTimer = 0;
+    }
+
+    function startStage(index, endlessMode = false) {
+      state.mode = "playing";
+      state.endless = endlessMode;
+      state.stageIndex = index;
+      state.dirt = [];
+      state.particles = [];
+      state.wipedPaths = [];
+      const st = currentStage();
+
+      if (!st.tissueUnlocked && state.selectedTool === "tissue") state.selectedTool = "finger";
+      if (!st.eraserUnlocked && state.selectedTool === "eraser") state.selectedTool = "finger";
+
+      state.pointerDown = false;
+      state.cleanPercent = 0;
+      state.removedCount = 0;
+      state.detox = 0;
+      state.spawnTimer = 0;
+      state.shake = 0;
+      state.flash = 0;
+      state.laser = 0;
+      state.elapsed = 0;
+      state.timeLeft = st.time;
+      state.lastTimestamp = performance.now();
+      resetSkillsForStage();
+
+      for (let i = 0; i < st.initial; i++) {
+        const item = applyStageDifficulty(makeDirt(weightedType(st.types)));
+        keepInPlayArea(item);
+        state.dirt.push(item);
+      }
+      const bosses = st.bossCount || 0;
+      for (let i = 0; i < bosses; i++) {
+        const bossItem = applyStageDifficulty(makeDirt("boss"));
+        keepInPlayArea(bossItem);
+        state.dirt.push(bossItem);
+      }
+
+      recalcInitialHp();
+      updateHud();
+      updateToolButtons();
+      messageOverlay.classList.add("hidden");
+      showToast((state.endless ? "ENDLESS" : "STAGE " + (index + 1)) + " · " + st.name);
+      if (stats.equipped.length) setTimeout(() => showToast(equippedEffectText()), 900);
+    }
+
+    function weightedType(types) {
+      if (types.includes(state.dailyType) && Math.random() < 0.28) return state.dailyType;
+      return pick(types);
+    }
+
+    function recalcInitialHp() {
+      state.initialHp = state.dirt.reduce((sum, d) => sum + d.hp, 0);
+      state.remainingHp = state.initialHp;
+    }
+
+    function updateHud() {
+      const st = currentStage();
+      stagePill.textContent = state.endless ? "ENDLESS" : "STAGE " + (state.stageIndex + 1);
+      stageNameEl.textContent = st.name;
+      subHint.textContent = st.hint;
+
+      if (state.endless) {
+        cleanPill.textContent = "SCORE " + state.score;
+        timePill.textContent = formatTime(state.elapsed);
+      } else if (st.goalType === "count") {
+        cleanPill.textContent = state.removedCount + "/" + st.goal;
+        timePill.textContent = Math.ceil(state.timeLeft) + "s";
+      } else {
+        cleanPill.textContent = "CLEAN " + Math.floor(state.cleanPercent) + "%";
+        timePill.textContent = Math.ceil(state.timeLeft) + "s";
+      }
+
+      detoxText.textContent = Math.floor(state.detox) + "%";
+      detoxFill.style.width = clamp(state.detox, 0, 100) + "%";
+      scoreBox.textContent = "SCORE " + state.score;
+      comboBox.textContent = "COMBO x" + state.combo;
+      activeBadgeLine.textContent = equippedEffectText();
+      if (Math.floor((state.elapsed || state.timeLeft || 0) * 4) !== state._lastSkillRenderTick) { state._lastSkillRenderTick = Math.floor((state.elapsed || state.timeLeft || 0) * 4); renderSkillBar(); }
+    }
+
+    function updateToolButtons() {
+      const st = currentStage();
+      fingerBtn.classList.toggle("active", state.selectedTool === "finger");
+      tissueBtn.classList.toggle("active", state.selectedTool === "tissue");
+      eraserBtn.classList.toggle("active", state.selectedTool === "eraser");
+      tissueBtn.classList.toggle("locked", !st.tissueUnlocked);
+      eraserBtn.classList.toggle("locked", !st.eraserUnlocked);
+    }
+
+    function selectTool(tool) {
+      const st = currentStage();
+      if (tool === "tissue" && !st.tissueUnlocked) {
+        showToast("물기 스테이지에서 휴지가 열립니다.");
+        return;
+      }
+      if (tool === "eraser" && !st.eraserUnlocked) {
+        showToast("낙서 스테이지에서 지우개가 열립니다.");
+        return;
+      }
+      state.selectedTool = tool;
+      updateToolButtons();
+      showToast(tool === "finger" ? "손가락 선택" : tool === "tissue" ? "휴지 선택" : "지우개 선택");
+    }
+
+    fingerBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); selectTool("finger"); playSfx("ready"); });
+    tissueBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); selectTool("tissue"); playSfx("ready"); });
+    eraserBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); selectTool("eraser"); playSfx("ready"); });
+    soundBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      setSoundEnabled(!soundEnabled);
+    });
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      state.toastTimer = 1.2;
+    }
+
+    function canvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    }
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (state.mode !== "playing") return;
+      const p = canvasPos(e);
+      state.pointerDown = true;
+      state.pointerX = state.lastX = p.x;
+      state.pointerY = state.lastY = p.y;
+      cleanAt(p.x, p.y, 0, 0);
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (state.mode !== "playing" || !state.pointerDown) return;
+      const p = canvasPos(e);
+      const dx = p.x - state.lastX;
+      const dy = p.y - state.lastY;
+      const dist = Math.hypot(dx, dy);
+      const steps = Math.max(1, Math.ceil(dist / 9));
+
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        const x = state.lastX + dx * t;
+        const y = state.lastY + dy * t;
+        cleanAt(x, y, dx, dy);
+      }
+
+      state.pointerX = p.x;
+      state.pointerY = p.y;
+      state.lastX = p.x;
+      state.lastY = p.y;
+    });
+
+    window.addEventListener("pointerup", () => { state.pointerDown = false; });
+    window.addEventListener("pointercancel", () => { state.pointerDown = false; });
+
+    function toolPowerAgainst(tool, type) {
+      let power = 1;
+      if (tool === "finger") {
+        if (["tired", "doodle", "boss", "anger"].includes(type)) power = 0.70;
+        if (type === "water") power = 0.36;
+      }
+
+      if (tool === "tissue") {
+        power = 1.15;
+        if (["water", "tired", "stain"].includes(type)) power = 2.25;
+        if (["alarm", "nag", "doodle"].includes(type)) power = 0.86;
+        if (type === "boss") power = 0.92;
+        if (type === "anger") power = 1.18;
+      }
+
+      if (tool === "eraser") {
+        power = 1.1;
+        if (["doodle", "alarm", "nag"].includes(type)) power = 2.35;
+        if (type === "boss") power = 1.35;
+        if (type === "anger") power = 0.82;
+        if (["water", "tired"].includes(type)) power = 0.55;
+      }      if (tool === "eraser" && state.eraserBoost > 0 && ["doodle", "alarm", "nag"].includes(type)) {
+        power *= 2.2;
+      }
+      if (type === "anger" && state.cooling > 0) {
+        power *= 1.7;
+      }
+      return power;
+    }
+
+    function cleanAt(x, y, dx, dy) {
+      const tool = state.selectedTool;
+      let radius = tool === "tissue" ? 41 : tool === "eraser" ? 29 : 25;
+      if (tool === "finger") radius *= (state.bigFinger > 0 ? 1.75 : 1);
+      if (tool === "tissue") radius *= 1;
+      const st = currentStage();
+
+      state.wipedPaths.push({ x, y, r: radius * (tool === "tissue" ? 1.15 : 1), life: 1, tool });
+      let hit = false;
+
+      for (let i = state.dirt.length - 1; i >= 0; i--) {
+        const d = state.dirt[i];
+        const dd = Math.hypot(d.x - x, d.y - y);
+        const hitRadius = radius + d.r * 0.92;
+
+        if (dd < hitRadius) {
+          hit = true;
+
+          if (d.type === "water" && tool === "finger") {
+            const mag = Math.hypot(dx, dy) || 1;
+            d.x += (dx / mag) * 3.8 + rnd(-1, 1);
+            d.y += (dy / mag) * 3.8 + rnd(-1, 1);
+            d.x = clamp(d.x, 14, W - 14);
+            const area = playAreaY();
+            d.y = clamp(d.y, area.top, area.bottom);
+          }
+
+          if (d.type === "anger") {
+            d.pulse += 0.22;
+            state.flash = Math.max(state.flash, 0.018);
+          }
+
+          if (d.type === "boss") {
+            d.blink += 0.20;
+            if (state.bossSilence <= 0 && Math.random() < 0.05 && state.dirt.length < 72) {
+              const bubble = applyStageDifficulty(makeDirt("nag", d.x + rnd(-34, 34), d.y + rnd(-36, 28)));
+              bubble.text = pick(["ASAP", "다시", "회의?", "보고"]);
+              bubble.split = false;
+              keepInPlayArea(bubble);
+              state.dirt.push(bubble);
+              state.initialHp += bubble.hp;
+            }
+          }
+
+          d.hp -= toolPowerAgainst(tool, d.type);
+          createScrubParticles(x, y, d.type, tool === "tissue" ? 3 : 2);
+
+          if (d.hp <= 0) {
+            handleRemoved(i, d);
+          }
+        }
+      }
+
+      if (hit) {
+        playSfx("scrub");
+        state.shake = Math.max(state.shake, 2);
+        updateCleanPercent();
+        if ((st.final || state.endless) && state.detox >= 100) triggerDetox();
+      }
+    }
+
+    function handleRemoved(index, d) {
+      playSfx(d.type === "boss" ? "boss" : "remove");
+      createBurst(d.x, d.y, d.type);
+      state.totalRemoved[d.type] = (state.totalRemoved[d.type] || 0) + 1;
+      state.removedCount++;
+
+      state.combo = state.comboTimer > 0 ? state.combo + 1 : 1;
+      state.comboTimer = 1.75;
+      if (state.combo > 0 && state.combo % 10 === 0) playSfx("combo");
+      const comboBonus = Math.min(7, Math.floor(state.combo / 5));
+      state.score += Math.round(12 + d.value * 4.5 + comboBonus * 4);
+      state.detox = clamp(state.detox + (((currentStage().final || state.endless) ? 4.2 : 3.1) + comboBonus * 0.22), 0, 100);
+
+      if (d.type === "nag" && d.split && state.dirt.length < 44) {
+        for (let k = 0; k < 2; k++) {
+          const child = makeDirt("nag", d.x + rnd(-22, 22), d.y + rnd(-18, 18));
+          child.w = rnd(34, 52);
+          child.h = rnd(22, 28);
+          child.hp = child.maxHp = 0.72;
+          child.text = pick(["또?", "왜?", "응?", "빨리"]);
+          child.split = false;
+          keepInPlayArea(child);
+          state.dirt.push(child);
+          state.initialHp += child.hp;
+        }
+      }
+
+      state.dirt.splice(index, 1);
+    }
+
+    function updateCleanPercent() {
+      if (state.endless) {
+        state.cleanPercent = clamp(100 - state.dirt.length * 1.08, 0, 100);
+        updateHud();
+        return;
+      }
+
+      const remaining = state.dirt.reduce((sum, d) => sum + Math.max(0, d.hp), 0);
+      state.remainingHp = remaining;
+      state.cleanPercent = clamp(((state.initialHp - remaining) / state.initialHp) * 100, 0, 100);
+      updateHud();
+      checkStageGoal();
+    }
+
+    function checkStageGoal() {
+      const st = currentStage();
+      if (state.mode !== "playing" || state.endless) return;
+
+      const reachableRemaining = state.dirt.filter(canDrawDirt).length;
+      const nearlyClean = st.goalType === "clean" && (state.cleanPercent >= st.goal || reachableRemaining <= 2);
+      const cleared = st.goalType === "count"
+        ? state.removedCount >= st.goal
+        : nearlyClean;
+
+      if (cleared) finishStage(true);
+    }
+
+    function triggerDetox(extraRatio = 0) {
+      state.detox = 0;
+      state.flash = 0.50;
+      state.shake = 24;
+      state.laser = 0.72;
+
+      const removeCount = Math.ceil(state.dirt.length * (0.52 + extraRatio));
+      for (let i = 0; i < removeCount && state.dirt.length > 0; i++) {
+        const idx = Math.floor(Math.random() * state.dirt.length);
+        const d = state.dirt[idx];
+        createBurst(d.x, d.y, d.type, 14);
+        state.totalRemoved[d.type] = (state.totalRemoved[d.type] || 0) + 1;
+        state.removedCount++;
+        state.score += Math.round(8 + d.value * 3);
+        state.dirt.splice(idx, 1);
+      }
+      updateCleanPercent();
+      showToast("DETOX!");
+    }
+
+    function finishStage(success) {
+      if (state.mode !== "playing") return;
+      state.mode = success ? "clear" : "gameover";
+
+      if (!state.endless) {
+        state.resultCleanSum += state.cleanPercent;
+      }
+
+      setTimeout(() => {
+        if (state.endless) {
+          showEndlessOver();
+        } else if (success) {
+          const isFinal = state.stageIndex === stages.length - 1;
+          if (isFinal) showFinal();
+          else showStageClear();
+        } else {
+          showGameOver();
+        }
+      }, 260);
+    }
+
+    function stageStars() {
+      const st = currentStage();
+      const timeRatio = st.time ? state.timeLeft / st.time : 0;
+      let stars = 1;
+      if (state.cleanPercent >= st.goal + 2 || state.removedCount >= st.goal + 10) stars = 2;
+      if ((state.cleanPercent >= 97 || timeRatio > 0.22) && state.score > 420) stars = 3;
+      return clamp(stars, 1, 3);
+    }
+
+    function showStageClear() {
+      const st = stages[state.stageIndex];
+      const stars = stageStars();
+      const reward = st.reward || (st.name + " 배지");
+      const isNewReward = !stats.rewards.includes(reward);
+      if (isNewReward) {
+        stats.rewards.push(reward);
+        playSfx("badge");
+      }
+      stats.bestStageStars[state.stageIndex] = Math.max(stats.bestStageStars[state.stageIndex] || 0, stars);
+      stats.bestScore = Math.max(stats.bestScore, state.score);
+      saveStats();
+
+      let unlock = "";
+      if (state.stageIndex === 2) unlock = "<br><br>휴지 도구 사용 가능.";
+      if (state.stageIndex === 3) unlock = "<br><br>지우개 도구 사용 가능.";
+
+      const badge = BADGE_BY_ID[st.rewardId];
+      const level = badgeStarLevel(st.rewardId);
+      const effect = badge ? badge.effect[level - 1] : "다음 판에 장착 가능";
+      messageTitle.textContent = isNewReward ? "스킬 배지 획득!" : "스킬 배지 강화/기록 갱신";
+      messageBody.innerHTML = `${st.name} 스테이지<br><b>${"★".repeat(stars)}${"☆".repeat(3-stars)}</b><br>CLEAN ${Math.floor(state.cleanPercent)}% · SCORE ${state.score}
+        <div class="rewardCard">
+          <div class="rewardIcon">${st.rewardId === "boss" ? "🌙" : st.rewardId === "anger" ? "🔥" : st.rewardId === "detox" ? "👑" : "🏅"}</div>
+          <div class="rewardName">${reward}</div>
+          <div class="rewardEffect">효과: ${effect}</div>
+          <div class="equipHint">${isNewReward ? "새 배지를 얻었습니다." : "이미 가진 배지입니다. 별 등급이 높으면 효과가 강해집니다."}<br>다음 판 시작 화면에서 배지를 클릭해 장착하세요. 최대 2개 장착.</div>
+        </div>${unlock}`;
+      messagePrimary.textContent = "다음 스테이지";
+      messageSecondary.classList.add("hidden");
+      messageOverlay.classList.remove("hidden");
+    }
+
+    function showGameOver() {
+      const st = stages[state.stageIndex];
+      stats.bestScore = Math.max(stats.bestScore, state.score);
+      saveStats();
+
+      playSfx("fail");
+      messageTitle.textContent = "조금 덜 닦였습니다";
+      messageBody.innerHTML = `${st.name} 스테이지<br><b>CLEAN ${Math.floor(state.cleanPercent)}%</b><br>SCORE ${state.score}<br>한 번 더 슥슥?`;
+      messagePrimary.textContent = "다시 하기";
+      messageSecondary.classList.remove("hidden");
+      messageSecondary.textContent = "처음부터";
+      messageOverlay.classList.remove("hidden");
+    }
+
+    function showFinal() {
+      const avg = Math.floor(state.resultCleanSum / stages.length);
+      const finalReward = stages[stages.length - 1].reward || "대청소 완료 왕배지";
+      if (!stats.rewards.includes(finalReward)) stats.rewards.push(finalReward);
+      stats.bestStageStars[stages.length - 1] = Math.max(stats.bestStageStars[stages.length - 1] || 0, stageStars());
+      stats.bestAvg = Math.max(stats.bestAvg, avg);
+      stats.bestScore = Math.max(stats.bestScore, state.score);
+      saveStats();
+
+      let lines = "";
+      for (const t of allTypes) lines += `${typeLabel[t]} ${state.totalRemoved[t] || 0} · `;
+      lines = lines.replace(/ · $/, "");
+
+      messageTitle.textContent = "대청소 완료 · 왕배지 획득";
+      const finalBadge = BADGE_BY_ID["detox"];
+      const finalLevel = badgeStarLevel("detox");
+      messageBody.innerHTML = `총 정화율 <b>${avg}%</b><br>SCORE <b>${state.score}</b><br>수집 배지 <b>${stats.rewards.length}/${stages.length}</b>
+        <div class="rewardCard">
+          <div class="rewardIcon">👑</div>
+          <div class="rewardName">${finalReward}</div>
+          <div class="rewardEffect">효과: ${finalBadge.effect[finalLevel - 1]}</div>
+          <div class="equipHint">다음 판 시작 화면에서 장착하면 DETOX 게이지가 더 빨리 찹니다.</div>
+        </div>${lines}`;
+      messagePrimary.textContent = "엔들리스 계속하기";
+      messageSecondary.classList.remove("hidden");
+      messageSecondary.textContent = "처음으로";
+      messageOverlay.classList.remove("hidden");
+      state.mode = "result";
+    }
+
+    function showEndlessOver() {
+      const survived = Math.floor(state.elapsed);
+      stats.bestEndless = Math.max(stats.bestEndless, survived);
+      stats.bestScore = Math.max(stats.bestScore, state.score);
+      saveStats();
+
+      playSfx("fail");
+      messageTitle.textContent = "엔들리스 종료";
+      messageBody.innerHTML = `버틴 시간 <b>${formatTime(survived)}</b><br>SCORE <b>${state.score}</b><br>오염이 화면을 덮었습니다.`;
+      messagePrimary.textContent = "엔들리스 다시";
+      messageSecondary.classList.remove("hidden");
+      messageSecondary.textContent = "처음으로";
+      messageOverlay.classList.remove("hidden");
+      state.mode = "endlessOver";
+    }
+
+    messagePrimary.addEventListener("click", () => {
+      if (state.mode === "clear") {
+        state.endless = false;
+        startStage(state.stageIndex + 1, false);
+      } else if (state.mode === "gameover") {
+        startStage(state.stageIndex, false);
+      } else if (state.mode === "result") {
+        startEndless();
+      } else if (state.mode === "endlessOver") {
+        startEndless();
+      }
+    });
+
+    messageSecondary.addEventListener("click", () => {
+      state.stageIndex = 0;
+      state.endless = false;
+      topHud.classList.add("hidden");
+      bottomHud.classList.add("hidden");
+      messageOverlay.classList.add("hidden");
+      startOverlay.classList.remove("hidden");
+      renderStartRecords();
+      state.mode = "start";
+    });
+
+    startBtn.addEventListener("click", () => { initAudio(); startGame(); });
+    endlessBtn.addEventListener("click", () => { initAudio(); startEndless(); });
+
+    function createScrubParticles(x, y, type, count = 2) {
+      for (let i = 0; i < count; i++) {
+        state.particles.push({
+          x: x + rnd(-6, 6),
+          y: y + rnd(-6, 6),
+          vx: rnd(-0.85, 0.85),
+          vy: rnd(-0.85, 0.85),
+          s: rnd(1, 3),
+          life: rnd(0.18, 0.36),
+          maxLife: 0.36,
+          color: particleColor(type)
+        });
+      }
+    }
+
+    function createBurst(x, y, type, count = 9) {
+      for (let i = 0; i < count; i++) {
+        state.particles.push({
+          x,
+          y,
+          vx: rnd(-3.4, 3.4),
+          vy: rnd(-3.4, 3.4),
+          s: rnd(1.3, 4),
+          life: rnd(0.45, 0.92),
+          maxLife: 0.92,
+          color: particleColor(type)
+        });
+      }
+    }
+
+    function particleColor(type) {
+      if (type === "dust") return pick(["#dadde8", "#8c93aa", "#555b70"]);
+      if (type === "stain") return pick(["#e2bd77", "#8e7040", "#fff2bf"]);
+      if (type === "alarm") return pick(["#ff4db8", "#00f3ff", "#ffffff"]);
+      if (type === "nag") return pick(["#ffd7ef", "#ff8dd1", "#ffffff"]);
+      if (type === "tired") return pick(["#c6cad8", "#6f768d", "#40475c"]);
+      if (type === "doodle") return pick(["#dff8ff", "#ff4db8", "#fff2bf", "#b7fffd"]);
+      if (type === "water") return pick(["#76d9ff", "#dff8ff", "#2d8dff"]);
+      if (type === "boss") return pick(["#ffca9e", "#ff4db8", "#fff2bf", "#00f3ff"]);
+      if (type === "anger") return pick(["#ff4b1f", "#ffb000", "#fff1aa"]);
+      return "#fff";
+    }
+
+    function spawnForStage(dt) {
+      const st = currentStage();
+      if (!st.spawnEvery) return;
+
+      state.spawnTimer += dt * 60;
+      const speedUp = state.endless ? Math.max(0.50, 1 - state.elapsed / 260) : 1;
+      let every = st.spawnEvery * speedUp;
+      if (st.types && st.types.includes("alarm")) every *= (1 + badgeFactor("alarm", [0.08, 0.13, 0.18]));
+
+      if (state.spawnTimer >= every) {
+        state.spawnTimer = 0;
+        const maxDirt = state.endless ? 104 : st.final ? 130 : 76;
+        if (state.dirt.length < maxDirt) {
+          const amount = state.endless ? 1 + Math.floor(state.elapsed / 65) : 1;
+          for (let i = 0; i < amount && state.dirt.length < maxDirt; i++) {
+            let spawnType = weightedType(st.types);
+            if (state.alarmMute > 0 && spawnType === "alarm") spawnType = "dust";
+            if (state.bossSilence > 0 && spawnType === "nag") spawnType = "dust";
+            const d = applyStageDifficulty(makeDirt(spawnType));
+            keepInPlayArea(d);
+            state.dirt.push(d);
+            state.initialHp += d.hp;
+          }
+          updateCleanPercent();
+        }
+      }
+    }
+
+    function update(dt) {
+      if (state.mode === "playing") {
+        if (state.endless) {
+          state.elapsed += dt;
+          state.timeLeft = state.elapsed;
+          if (state.dirt.length > 96) finishStage(false);
+        } else {
+          state.timeLeft -= dt;
+          if (state.timeLeft <= 0) {
+            state.timeLeft = 0;
+            checkStageGoal();
+            const st = currentStage();
+            const reachableRemaining = state.dirt.filter(canDrawDirt).length;
+            const cleared = st.goalType === "count"
+              ? state.removedCount >= st.goal
+              : (state.cleanPercent >= st.goal || reachableRemaining <= 2);
+            if (!cleared) finishStage(false);
+          }
+        }
+
+        for (const s of state.stars) {
+          s.y += s.sp * (dt * 60);
+          if (s.y > H) {
+            s.y = 0;
+            s.x = Math.random() * W;
+          }
+        }
+
+        const area = playAreaY();
+        for (const d of state.dirt) {
+          d.blink += dt * 5;
+
+          if (["alarm", "nag", "boss", "anger"].includes(d.type)) {
+            d.x += d.vx * (dt * 60);
+            d.y += d.vy * (dt * 60);
+            if (d.x < 26 || d.x > W - 26) d.vx *= -1;
+            if (d.y < area.top || d.y > area.bottom) d.vy *= -1;
+          }
+
+          if (d.type === "tired") {
+            const tiredSlow = 1 - badgeFactor("tired", [0.10, 0.18, 0.28]);
+            d.x += d.vx * (dt * 60) * tiredSlow;
+            d.y += d.vy * (dt * 60) * tiredSlow;
+            if (d.y > area.bottom) {
+              d.y = area.bottom;
+              d.vy *= -0.2;
+            }
+          }
+
+          if (d.type === "water") {
+            d.x += d.vx * (dt * 60);
+            d.y += d.vy * (dt * 60);
+            d.y = clamp(d.y, area.top, area.bottom);
+          }
+
+          if (d.type === "boss") {
+            d.spawnTick += dt;
+            const bossReduce = badgeFactor("boss", [0.15, 0.25, 0.40]);
+            if (d.spawnTick > 10 && Math.random() < 0.014 * (1 - bossReduce) && state.dirt.length < 72) {
+              d.spawnTick = 0;
+              const b = applyStageDifficulty(makeDirt("nag", d.x + rnd(-42, 42), d.y + rnd(-40, 42)));
+              b.text = pick(["ASAP", "수정", "회의?"]);
+              b.split = false;
+              keepInPlayArea(b);
+              state.dirt.push(b);
+              state.initialHp += b.hp;
+            }
+          }
+
+          keepInPlayArea(d);
+        }
+
+        spawnForStage(dt);
+      }
+      if (state.comboTimer > 0) {
+        state.comboTimer -= dt;
+        if (state.comboTimer <= 0) state.combo = 0;
+      }
+
+      for (const id of Object.keys(state.skillCooldowns)) {
+        state.skillCooldowns[id] = Math.max(0, state.skillCooldowns[id] - dt);
+      }
+      state.alarmMute = Math.max(0, state.alarmMute - dt);
+      state.bossSilence = Math.max(0, state.bossSilence - dt);
+      state.bigFinger = Math.max(0, state.bigFinger - dt);
+      state.eraserBoost = Math.max(0, state.eraserBoost - dt);
+      state.tiredLift = Math.max(0, state.tiredLift - dt);
+      state.cooling = Math.max(0, state.cooling - dt);
+      state.skillVisualTimer = Math.max(0, state.skillVisualTimer - dt);
+      if (state.skillVisualTimer <= 0) state.skillVisual = null;
+
+
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * (dt * 60);
+        p.y += p.vy * (dt * 60);
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+        p.life -= dt;
+        if (p.life <= 0) state.particles.splice(i, 1);
+      }
+
+      for (let i = state.wipedPaths.length - 1; i >= 0; i--) {
+        const w = state.wipedPaths[i];
+        w.life -= dt * 0.36;
+        if (w.life <= 0) state.wipedPaths.splice(i, 1);
+      }
+
+      if (state.toastTimer > 0) {
+        state.toastTimer -= dt;
+        if (state.toastTimer <= 0) toast.classList.remove("show");
+      }
+
+      state.shake = Math.max(0, state.shake - dt * 30);
+      state.flash = Math.max(0, state.flash - dt);
+      state.laser = Math.max(0, state.laser - dt);
+      updateHud();
+    }
+
+    function draw() {
+      let ox = 0, oy = 0;
+      if (state.shake > 0) {
+        ox = rnd(-state.shake, state.shake) * 0.28;
+        oy = rnd(-state.shake, state.shake) * 0.28;
+      }
+
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.save();
+      ctx.translate(ox, oy);
+
+      const bg = ctx.createRadialGradient(W * 0.5, H * 0.25, 10, W * 0.5, H * 0.4, H * 0.75);
+      bg.addColorStop(0, "#121b38");
+      bg.addColorStop(0.45, "#080b19");
+      bg.addColorStop(1, "#03040a");
+      ctx.fillStyle = bg;
+      ctx.fillRect(0, 0, W, H);
+
+      drawStars();
+
+      for (const d of state.dirt) { if (canDrawDirt(d)) drawDirt(d); }
+
+      drawStageAtmosphere();
+      drawSkillVisual();
+      drawFog();
+      drawWipedPaths();
+
+      if (state.laser > 0) drawDetoxEffect();
+
+      drawParticles();
+      ctx.restore();
+
+      if (state.flash > 0) {
+        ctx.globalAlpha = clamp(state.flash * 2.2, 0, 0.9);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    function drawStars() {
+      for (const s of state.stars) {
+        ctx.globalAlpha = s.a;
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(Math.floor(s.x), Math.floor(s.y), s.s, s.s);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawStageAtmosphere() {
+      const st = currentStage();
+      if (!st.heat) return;
+
+      const heatAmount = clamp((100 - state.cleanPercent) / 100, 0.05, 0.55);
+      const g = ctx.createRadialGradient(W * 0.5, H * 0.45, 20, W * 0.5, H * 0.45, Math.max(W, H) * 0.72);
+      g.addColorStop(0, `rgba(255, 75, 31, ${heatAmount * 0.14})`);
+      g.addColorStop(0.55, `rgba(255, 176, 0, ${heatAmount * 0.06})`);
+      g.addColorStop(1, `rgba(255, 75, 31, ${heatAmount * 0.20})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    function drawFog() {
+      if (state.mode === "start") return;
+      const st = currentStage();
+      const fogAlpha = clamp(st.fog * (1 - state.cleanPercent / 130), 0.04, st.fog);
+
+      ctx.save();
+      ctx.globalAlpha = fogAlpha;
+      ctx.fillStyle = "#dce1ec";
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.globalAlpha = fogAlpha * 0.58;
+      ctx.fillStyle = "#ffffff";
+      for (let i = 0; i < 58; i++) {
+        const x = (i * 73 + Math.sin(performance.now() * 0.0004 + i) * 30) % W;
+        const y = (i * 131 + Math.cos(performance.now() * 0.0003 + i) * 20) % H;
+        ctx.fillRect(x, y, 1, 1);
+      }
+      ctx.restore();
+    }
+
+    function drawWipedPaths() {
+      for (const w of state.wipedPaths) {
+        const alpha = clamp(w.life, 0, 1);
+        const g = ctx.createRadialGradient(w.x, w.y, 2, w.x, w.y, w.r);
+        const color = w.tool === "eraser" ? "255,255,255" : w.tool === "tissue" ? "180,245,255" : "255,255,255";
+        g.addColorStop(0, `rgba(${color}, ${0.20 * alpha})`);
+        g.addColorStop(0.55, `rgba(0,243,255,${0.07 * alpha})`);
+        g.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, w.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawDirt(d) {
+      if (d.type === "dust") return drawDust(d);
+      if (d.type === "stain") return drawStain(d);
+      if (d.type === "alarm") return drawBox(d, "#00f3ff", "#ff4db8");
+      if (d.type === "nag") return drawSpeech(d);
+      if (d.type === "tired") return drawTired(d);
+      if (d.type === "doodle") return drawDoodle(d);
+      if (d.type === "water") return drawWater(d);
+      if (d.type === "boss") return drawBoss(d);
+      if (d.type === "anger") return drawAnger(d);
+    }
+
+    function drawDust(d) {
+      const a = 0.55 + 0.25 * Math.sin(d.blink);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = "#8b90a3";
+      const s = d.r;
+      ctx.fillRect(Math.floor(d.x - s / 2), Math.floor(d.y - s / 2), s, s);
+      ctx.fillStyle = "#4d5264";
+      ctx.fillRect(Math.floor(d.x - s / 4), Math.floor(d.y - s / 4), s / 2, s / 2);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawStain(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      const g = ctx.createRadialGradient(d.x, d.y, 2, d.x, d.y, d.r);
+      g.addColorStop(0, `rgba(185, 132, 57, ${0.65 * hpRatio})`);
+      g.addColorStop(0.65, `rgba(226, 189, 119, ${0.35 * hpRatio})`);
+      g.addColorStop(1, "rgba(226, 189, 119, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawBox(d, stroke, glow) {
+      const blink = 0.74 + 0.26 * Math.sin(d.blink * 4);
+      ctx.globalAlpha = blink;
+      ctx.fillStyle = hexToRgba(glow, 0.22);
+      ctx.fillRect(d.x - d.w / 2 - 3, d.y - d.h / 2 - 3, d.w + 6, d.h + 6);
+      ctx.fillStyle = "#0e1428";
+      ctx.fillRect(d.x - d.w / 2, d.y - d.h / 2, d.w, d.h);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(d.x - d.w / 2, d.y - d.h / 2, d.w, d.h);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(d.text, d.x, d.y + 0.5);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawSpeech(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      const blink = 0.84 + 0.16 * Math.sin(d.blink * 3);
+      ctx.globalAlpha = blink * hpRatio;
+      const x = d.x - d.w / 2;
+      const y = d.y - d.h / 2;
+      roundRect(x, y, d.w, d.h, 10);
+      ctx.fillStyle = "rgba(255, 215, 239, 0.92)";
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 77, 184, 0.9)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(d.x - 6, d.y + d.h / 2 - 2);
+      ctx.lineTo(d.x + 4, d.y + d.h / 2 + 9);
+      ctx.lineTo(d.x + 10, d.y + d.h / 2 - 2);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(255, 215, 239, 0.92)";
+      ctx.fill();
+
+      ctx.fillStyle = "#321425";
+      ctx.font = "bold 12px sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(d.text, d.x, d.y);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawTired(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.scale(1.15, d.sag);
+      const g = ctx.createRadialGradient(0, 0, 1, 0, 0, d.r);
+      g.addColorStop(0, `rgba(160, 165, 185, ${0.78 * hpRatio})`);
+      g.addColorStop(0.7, `rgba(70, 76, 98, ${0.55 * hpRatio})`);
+      g.addColorStop(1, "rgba(40, 45, 62, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, d.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.globalAlpha = 0.45 * hpRatio;
+      ctx.fillStyle = "#d9ddeb";
+      ctx.font = "bold 13px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("zzz", d.x, d.y);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawDoodle(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.globalAlpha = 0.92 * hpRatio;
+      ctx.strokeStyle = d.color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      for (let i = 0; i < d.points.length; i++) {
+        const p = d.points[i];
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.20 * hpRatio;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 8;
+      ctx.stroke();
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    function drawWater(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      ctx.save();
+      ctx.translate(d.x, d.y);
+      ctx.scale(1, d.stretch);
+      const g = ctx.createRadialGradient(0, 0, 1, 0, 0, d.r);
+      g.addColorStop(0, `rgba(223, 248, 255, ${0.58 * hpRatio})`);
+      g.addColorStop(0.5, `rgba(118, 217, 255, ${0.34 * hpRatio})`);
+      g.addColorStop(1, "rgba(45, 141, 255, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, d.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.globalAlpha = 0.4 * hpRatio;
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.arc(d.x - d.r * 0.3, d.y - d.r * 0.35, Math.max(2, d.r * 0.16), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+
+    function drawAnger(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      const pulse = 1 + 0.13 * Math.sin(d.blink * 5 + d.pulse);
+      const r = d.r * pulse;
+      const g = ctx.createRadialGradient(d.x, d.y, 2, d.x, d.y, r);
+      g.addColorStop(0, `rgba(255, 176, 0, ${0.86 * hpRatio})`);
+      g.addColorStop(0.45, `rgba(255, 75, 31, ${0.72 * hpRatio})`);
+      g.addColorStop(1, "rgba(255, 75, 31, 0)");
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = `rgba(255, 240, 170, ${0.7 * hpRatio})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(d.x - r * 0.35, d.y - r * 0.1);
+      ctx.lineTo(d.x - r * 0.05, d.y + r * 0.08);
+      ctx.lineTo(d.x - r * 0.22, d.y + r * 0.35);
+      ctx.moveTo(d.x + r * 0.28, d.y - r * 0.32);
+      ctx.lineTo(d.x + r * 0.02, d.y - r * 0.02);
+      ctx.lineTo(d.x + r * 0.32, d.y + r * 0.28);
+      ctx.stroke();
+
+      ctx.globalAlpha = 0.75 * hpRatio;
+      ctx.fillStyle = "#fff1aa";
+      ctx.font = "bold 11px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("화", d.x, d.y);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBoss(d) {
+      const hpRatio = clamp(d.hp / d.maxHp, 0, 1);
+      const pulse = 1 + Math.sin(d.blink * 4) * 0.035;
+      const w = d.w * pulse;
+      const h = d.h * pulse;
+      const x = d.x - w / 2;
+      const y = d.y - h / 2;
+
+      ctx.save();
+      ctx.globalAlpha = 0.92 * hpRatio;
+
+      const glow = ctx.createRadialGradient(d.x, d.y, 4, d.x, d.y, d.r * 1.7);
+      glow.addColorStop(0, "rgba(255, 77, 184, 0.20)");
+      glow.addColorStop(1, "rgba(255, 77, 184, 0)");
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r * 1.8, 0, Math.PI * 2);
+      ctx.fill();
+
+      roundRect(x, y, w, h, 15);
+      ctx.fillStyle = "#f1b78e";
+      ctx.fill();
+      ctx.strokeStyle = "#321425";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // hair
+      ctx.fillStyle = "#2c1b18";
+      ctx.fillRect(x + 8, y + 4, w - 16, 10);
+      ctx.fillRect(x + 14, y + 13, w - 28, 6);
+
+      // glasses
+      ctx.strokeStyle = "#111827";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(d.x - 21, d.y - 8, 16, 13);
+      ctx.strokeRect(d.x + 5, d.y - 8, 16, 13);
+      ctx.beginPath();
+      ctx.moveTo(d.x - 5, d.y - 2);
+      ctx.lineTo(d.x + 5, d.y - 2);
+      ctx.stroke();
+
+      // eyebrows
+      ctx.strokeStyle = "#321425";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(d.x - 23, d.y - 15);
+      ctx.lineTo(d.x - 7, d.y - 19);
+      ctx.moveTo(d.x + 7, d.y - 19);
+      ctx.lineTo(d.x + 23, d.y - 15);
+      ctx.stroke();
+
+      // mouth
+      ctx.strokeStyle = "#6b1b2e";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(d.x - 12, d.y + 20);
+      ctx.lineTo(d.x + 12, d.y + 20);
+      ctx.stroke();
+
+      // floating label
+      ctx.globalAlpha = 0.82 * hpRatio;
+      ctx.fillStyle = "rgba(14, 20, 40, 0.82)";
+      roundRect(d.x - 31, d.y - h / 2 - 24, 62, 18, 8);
+      ctx.fill();
+      ctx.strokeStyle = "#ff4db8";
+      ctx.stroke();
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 10px monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(d.mood, d.x, d.y - h / 2 - 15);
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+
+    function drawSkillVisual() {
+      if (!state.skillVisual || state.skillVisualTimer <= 0) return;
+      const t = clamp(state.skillVisualTimer / 1.4, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = 0.55 * t;
+
+      if (state.skillVisual === "boss") {
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, "rgba(255, 190, 92, 0.35)");
+        g.addColorStop(0.55, "rgba(255, 77, 184, 0.15)");
+        g.addColorStop(1, "rgba(12, 20, 48, 0.45)");
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#fff2bf";
+        ctx.font = "bold 28px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("퇴근의 빛", W/2, H*0.42);
+      } else if (state.skillVisual === "anger") {
+        ctx.fillStyle = "rgba(72, 206, 255, 0.32)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#dff8ff";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("화병 식힘", W/2, H*0.42);
+      } else if (state.skillVisual === "alarm") {
+        ctx.fillStyle = "rgba(0, 243, 255, 0.18)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 26px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("알림 무음", W/2, H*0.42);
+      } else if (state.skillVisual === "tissue") {
+        ctx.strokeStyle = "rgba(223, 248, 255, 0.72)";
+        ctx.lineWidth = 18;
+        ctx.beginPath();
+        ctx.arc(W/2, H/2, (1.4-t) * Math.max(W, H) * 0.7, 0, Math.PI*2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+        ctx.fillRect(0, 0, W, H);
+        const b = BADGE_BY_ID[state.skillVisual];
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 24px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText((b?.icon || "✦") + " " + (b?.name || "스킬"), W/2, H*0.42);
+      }
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+
+    function drawParticles() {
+      for (const p of state.particles) {
+        const a = clamp(p.life / p.maxLife, 0, 1);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.floor(p.x), Math.floor(p.y), p.s, p.s);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawDetoxEffect() {
+      const t = state.laser;
+      ctx.save();
+      ctx.globalAlpha = clamp(t * 1.6, 0, 1);
+      ctx.fillStyle = "rgba(0, 243, 255, 0.20)";
+      ctx.fillRect(W / 2 - 42, 0, 84, H);
+      ctx.fillStyle = "rgba(255, 77, 184, 0.28)";
+      ctx.fillRect(W / 2 - 22, 0, 44, H);
+      ctx.fillStyle = "rgba(255,255,255,0.82)";
+      ctx.fillRect(W / 2 - 5, 0, 10, H);
+
+      const r = (1 - t) * Math.max(W, H) * 1.2;
+      ctx.strokeStyle = "rgba(255,255,255,0.45)";
+      ctx.lineWidth = 10;
+      ctx.beginPath();
+      ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function hexToRgba(hex, alpha) {
+      const h = hex.replace("#", "");
+      const r = parseInt(h.substring(0,2), 16);
+      const g = parseInt(h.substring(2,4), 16);
+      const b = parseInt(h.substring(4,6), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function formatTime(seconds) {
+      seconds = Math.floor(seconds || 0);
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${String(s).padStart(2, "0")}`;
+    }
+
+    function loop(ts) {
+      const dt = Math.min(0.05, (ts - state.lastTimestamp) / 1000 || 0);
+      state.lastTimestamp = ts;
+      update(dt);
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("resize", () => {
+      fitCanvas();
+      makeStars();
+    });
+
+    fitCanvas();
+    makeStars();
+    renderStartRecords();
+    requestAnimationFrame((ts) => {
+      state.lastTimestamp = ts;
+      loop(ts);
+    });
+  </script>
+</body>
+</html>
